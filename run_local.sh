@@ -12,16 +12,10 @@ SUX="sux-bench/target/release/sux-bench"
 OPTIONS="--meva --plai --elia --rrrv --rlev --lave --lavo --encv --ds2i --s18v"
 
 mkdir -p "$DIR"
-rm -f "$DIR/entropy_comparison.csv" "$DIR/DNA_5GRAM_URL_comparison.csv" \
+rm -f "$DIR/DNA_5GRAM_URL_comparison.csv" \
       "$DIR/GOV2_100K-1M_comparison.csv" "$DIR/GOV2_1M-10M_comparison.csv" \
       "$DIR/GOV2_10M-_comparison.csv" "$DIR/GOV2_averages.csv" \
       "$DIR/comparison.csv" "$DIR/sux_ef_comparison.csv" "$DIR/comparison.err"
-
-echo "=== Entropy comparison ==="
-"$EXE" --entr \
-    "$DATA/GOV2_1" \
-    > "$DIR/entropy_comparison.csv" \
-    2> "$DIR/comparison.err"
 
 echo "=== DNA / 5GRAM / URL ==="
 "$EXE" $OPTIONS \
