@@ -13,10 +13,24 @@ use sux::traits::TryIntoUnaligned;
 /// 8-byte little-endian size_t prefix, then n * 4-byte little-endian u32 values.
 fn read_data_binary(path: &str) -> io::Result<Vec<u32>> {
     let mut f = File::open(path)?;
+    let file_len = f.metadata()?.len();
     let mut size_buf = [0u8; 8];
     f.read_exact(&mut size_buf)?;
-    let size = usize::from_le_bytes(size_buf);
-    let mut bytes = vec![0u8; size * 4];
+    let size = u64::from_le_bytes(size_buf);
+    let byte_count = size
+        .checked_mul(4)
+        .and_then(|b| b.checked_add(8))
+        .filter(|&total| total <= file_len)
+        .ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::InvalidData,
+                format!(
+                    "{path}: declared size {size} would require more bytes than the file's {file_len}"
+                ),
+            )
+        })?
+        - 8;
+    let mut bytes = vec![0u8; byte_count as usize];
     f.read_exact(&mut bytes)?;
     Ok(bytes
         .chunks_exact(4)
