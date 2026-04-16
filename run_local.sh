@@ -12,34 +12,38 @@ SUX="sux-bench/target/release/sux-bench"
 OPTIONS="--meva --plai --elia --rrrv --rlev --lave --lavo --encv --ds2i --s18v"
 
 mkdir -p "$DIR"
+rm -f "$DIR/entropy_comparison.csv" "$DIR/DNA_5GRAM_URL_comparison.csv" \
+      "$DIR/GOV2_100K-1M_comparison.csv" "$DIR/GOV2_1M-10M_comparison.csv" \
+      "$DIR/GOV2_10M-_comparison.csv" "$DIR/GOV2_averages.csv" \
+      "$DIR/comparison.csv" "$DIR/sux_ef_comparison.csv" "$DIR/comparison.err"
 
 echo "=== Entropy comparison ==="
 "$EXE" --entr \
     "$DATA/GOV2_1" \
-    >> "$DIR/entropy_comparison.csv" \
-    2>> "$DIR/comparison.err"
+    > "$DIR/entropy_comparison.csv" \
+    2> "$DIR/comparison.err"
 
 echo "=== DNA / 5GRAM / URL ==="
 "$EXE" $OPTIONS \
     "$DATA/DNA_1"   "$DATA/DNA_2"   "$DATA/DNA_3" \
     "$DATA/5GRAM_1" "$DATA/5GRAM_2" "$DATA/5GRAM_3" \
     "$DATA/URL_1"   "$DATA/URL_2"   "$DATA/URL_3" \
-    >> "$DIR/DNA_5GRAM_URL_comparison.csv" \
+    > "$DIR/DNA_5GRAM_URL_comparison.csv" \
     2>> "$DIR/comparison.err"
 
 echo "=== GOV2 100K-1M ==="
 "$EXE" $OPTIONS "$DATA/GOV2_3" \
-    >> "$DIR/GOV2_100K-1M_comparison.csv" \
+    > "$DIR/GOV2_100K-1M_comparison.csv" \
     2>> "$DIR/comparison.err"
 
 echo "=== GOV2 1M-10M ==="
 "$EXE" $OPTIONS "$DATA/GOV2_2" \
-    >> "$DIR/GOV2_1M-10M_comparison.csv" \
+    > "$DIR/GOV2_1M-10M_comparison.csv" \
     2>> "$DIR/comparison.err"
 
 echo "=== GOV2 10M+ ==="
 "$EXE" $OPTIONS "$DATA/GOV2_1" \
-    >> "$DIR/GOV2_10M-_comparison.csv" \
+    > "$DIR/GOV2_10M-_comparison.csv" \
     2>> "$DIR/comparison.err"
 
 # Averages (single file per range, so average = the file itself)
@@ -68,7 +72,7 @@ echo "=== sux Elias-Fano (Rust) ==="
     "$DATA/5GRAM_1" "$DATA/5GRAM_2" "$DATA/5GRAM_3" \
     "$DATA/URL_1"   "$DATA/URL_2"   "$DATA/URL_3" \
     "$DATA/GOV2_3"  "$DATA/GOV2_2"  "$DATA/GOV2_1" \
-    >> "$DIR/sux_ef_comparison.csv" \
+    > "$DIR/sux_ef_comparison.csv" \
     2>> "$DIR/comparison.err"
 
 echo "=== Done. Results in $DIR/ ==="
