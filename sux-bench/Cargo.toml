@@ -12,6 +12,6 @@ opt-level = 3
 lto = "fat"
 
 [dependencies]
-sux = { path = "/Users/vigna/git/sux-rs" }
+sux = { path = "../../sux-rs" }
 mem_dbg = "0.4"
 rand = { version = "0.8", features = ["small_rng"] }

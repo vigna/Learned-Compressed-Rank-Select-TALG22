@@ -112,7 +112,8 @@ STRUCTURES = {
 SUX_STRUCT = 'EF (sux)'
 SUX_COLS   = ('sux_ef_time_select', 'sux_ef_bpk', 'sux_ef_time_rank')
 
-BPK_MAX = 16.0   # filter out structures using more than 16 bits/key (matches paper)
+BPK_MAX  = 16.0   # filter out structures using more than 16 bits/key (matches paper)
+TIME_MAX = 200.0  # clip X-axis at 400 ns
 
 # ── Paper grid layout ─────────────────────────────────────────────────────────
 # 4 rows × 3 cols: rows = dataset families (GOV2→DNA top→bottom),
@@ -238,7 +239,7 @@ def plot_cell(ax, row: 'pd.Series', op: str,
                                          ls='none', markersize=st['ms'],
                                          label=st['label']))
 
-    ax.set_xlim(left=0)
+    ax.set_xlim(left=0, right=TIME_MAX)
     ax.set_ylim(top=BPK_MAX)
     ax.grid(True, ls=':', lw=0.4, alpha=0.6)
     ax.tick_params(labelsize=7)
