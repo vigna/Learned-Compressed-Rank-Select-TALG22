@@ -7,7 +7,7 @@ set -euo pipefail
 DIR="results"
 DATA="data"
 EXE="build/my_benchmark"
-SUX="sux-bench/target/release/sux-bench"
+SUX="sux-bench/${CARGO_TARGET_DIR:-target}/release/sux-bench"
 
 OPTIONS="--meva --plai --elia --rrrv --rlev --lave --lavo --encv --ds2i --s18v"
 
