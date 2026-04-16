@@ -88,9 +88,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // 20% of the dataset is queried, matching TIMES_TEST = data.size() / 5 in C++.
         let times_test = n / 5;
 
-        // Select query indices: uniform
+        // Select query indices: uniform in [0, n-2], matching C++ dist1(1, n-1) (1-indexed).
         let mut rng1 = SmallRng::seed_from_u64(42);
-        let rands1: Vec<usize> = (0..times_test).map(|_| rng1.gen_range(0..n)).collect();
+        let rands1: Vec<usize> = (0..times_test).map(|_| rng1.gen_range(0..n - 1)).collect();
 
         // Rank query values: uniform in [data[0], data[n-1]-1], matching C++.
         // gen_range(a..b) is [a, b), so gen_range(data_min..data_max) = [data_min, data_max-1].
@@ -108,15 +108,19 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let bpk = ef.mem_size(SizeFlags::default()) as f64 * 8.0 / n as f64;
 
                 let start = Instant::now();
+                let mut cnt: usize = 0;
                 for &i in &rands1 {
-                    core::hint::black_box(unsafe { ef.get_unchecked(i) });
+                    cnt = cnt.wrapping_add(unsafe { ef.get_unchecked(i) });
                 }
+                core::hint::black_box(cnt);
                 let select_ns = start.elapsed().as_nanos() as f64 / times_test as f64;
-                let start = Instant::now();
 
+                let start = Instant::now();
+                let mut cnt: usize = 0;
                 for &x in &rands2 {
-                    core::hint::black_box(ef.rank(x as usize));
+                    cnt = cnt.wrapping_add(ef.rank(x));
                 }
+                core::hint::black_box(cnt);
                 let rank_ns = start.elapsed().as_nanos() as f64 / times_test as f64;
                 (select_ns, bpk, rank_ns)
             }};
