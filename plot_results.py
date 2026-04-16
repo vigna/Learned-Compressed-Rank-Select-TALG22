@@ -3,8 +3,14 @@
 plot_results.py — Space-time tradeoff plots for rank/select dictionaries.
 
 Reads results/comparison.csv (DNA/5GRAM/URL + GOV2 averages) and optionally
-results/sux_ef_comparison.csv, then produces PDF figures: bits-per-element (x)
-vs. nanoseconds-per-query (y) for select and rank, grouped by dataset family.
+results/sux_ef_comparison.csv, then produces two PDF figures matching the layout
+of Figures 7 and 8 in the paper:
+  - results/figures/select.pdf
+  - results/figures/rank.pdf
+
+Each figure is a 4×3 grid: rows = dataset families (GOV2, URL, 5GRAM, DNA),
+columns = sizes sparse → dense within each family.
+Axes are linear; X = time (ns), Y = space (bpk); Y is clipped at 16 bpk.
 
 Usage:
     python plot_results.py [--results-dir results/] [--output results/figures/]
@@ -14,7 +20,6 @@ import argparse
 import os
 import sys
 
-import numpy as np
 import pandas as pd
 import matplotlib
 matplotlib.use('Agg')
@@ -22,25 +27,24 @@ import matplotlib.pyplot as plt
 import matplotlib.lines as mlines
 
 # ── Style palette ─────────────────────────────────────────────────────────────
-# Each entry: color, marker, linestyle, linewidth, markersize, display label
 STYLES = {
-    'Array':             dict(color='#555555', marker='X',  ls='--',    lw=1.2, ms=7,  label='Array'),
-    'EF (SDSL)':         dict(color='#1f77b4', marker='o',  ls='-',     lw=1.5, ms=7,  label='EF (SDSL)'),
-    'EF (sux)':          dict(color='#17becf', marker='D',  ls='-',     lw=1.5, ms=6,  label='EF (sux)'),
-    'RRR':               dict(color='#ff7f0e', marker='s',  ls='-',     lw=1.5, ms=6,  label='RRR'),
-    'RLE':               dict(color='#2ca02c', marker='^',  ls='-',     lw=1.5, ms=6,  label='RLE'),
-    'la_vector':         dict(color='#d62728', marker='*',  ls='-',     lw=2.2, ms=10, label='la_vector'),
-    'la_vector_opt':     dict(color='#8c0000', marker='P',  ls='none',  lw=1.0, ms=10, label='la_vector (opt)'),
-    'enc (delta)':       dict(color='#9467bd', marker='v',  ls='-',     lw=1.5, ms=6,  label='enc_vector (δ)'),
-    'enc (gamma)':       dict(color='#c5b0d5', marker='^',  ls='-',     lw=1.5, ms=6,  label='enc_vector (γ)'),
-    'hyb (uniform)':     dict(color='#8c564b', marker='p',  ls='-',     lw=1.5, ms=7,  label='hyb (uniform)'),
-    'hyb (partitioned)': dict(color='#e377c2', marker='h',  ls='-',     lw=1.5, ms=7,  label='hyb (partitioned)'),
-    's18':               dict(color='#bcbd22', marker='d',  ls='-',     lw=1.5, ms=6,  label='s18'),
+    'Array':             dict(color='#555555', marker='X',  ls='--',   lw=1.2, ms=6,  label='Array'),
+    'EF (SDSL)':         dict(color='#1f77b4', marker='o',  ls='-',    lw=1.5, ms=7,  label='EF (SDSL)'),
+    'EF (sux)':          dict(color='#17becf', marker='D',  ls='none', lw=1.5, ms=7,  label='EF (sux)'),
+    'RRR':               dict(color='#ff7f0e', marker='s',  ls='-',    lw=1.5, ms=5,  label='RRR'),
+    'RLE':               dict(color='#2ca02c', marker='^',  ls='-',    lw=1.5, ms=5,  label='RLE'),
+    'la_vector':         dict(color='#d62728', marker='*',  ls='-',    lw=2.0, ms=9,  label='la_vector'),
+    'la_vector_opt':     dict(color='#8c0000', marker='P',  ls='none', lw=1.0, ms=9,  label='la_vector (opt)'),
+    'enc (delta)':       dict(color='#9467bd', marker='v',  ls='-',    lw=1.5, ms=5,  label='enc_vector (δ)'),
+    'enc (gamma)':       dict(color='#c5b0d5', marker='^',  ls='-',    lw=1.5, ms=5,  label='enc_vector (γ)'),
+    'hyb (uniform)':     dict(color='#8c564b', marker='p',  ls='-',    lw=1.5, ms=6,  label='hyb (uniform)'),
+    'hyb (partitioned)': dict(color='#e377c2', marker='h',  ls='-',    lw=1.5, ms=6,  label='hyb (partitioned)'),
+    's18':               dict(color='#bcbd22', marker='d',  ls='-',    lw=1.5, ms=5,  label='s18'),
 }
 
 # ── Column definitions ────────────────────────────────────────────────────────
-# Each structure: list of (select_col, bpk_col, rank_col) per variant (block size / bpc).
-# Variants within a group are connected by a line (space-time curve).
+# Each structure: list of (select_col, bpk_col, rank_col) per variant.
+# Variants are connected by a line (space-time tradeoff curve).
 STRUCTURES = {
     'Array': [
         ('array_time_select', 'array_bpk', 'array_time_rank'),
@@ -105,32 +109,36 @@ STRUCTURES = {
     ],
 }
 
-# sux-bench adds a separate row for each dataset; we attach it via a join.
 SUX_STRUCT = 'EF (sux)'
-SUX_COLS = ('sux_ef_time_select', 'sux_ef_bpk', 'sux_ef_time_rank')
+SUX_COLS   = ('sux_ef_time_select', 'sux_ef_bpk', 'sux_ef_time_rank')
 
-# ── Dataset groups ────────────────────────────────────────────────────────────
-# (display_name, [list of filename strings as stored in the CSV, without quotes])
-DATASET_GROUPS = [
-    ('DNA',             ['DNA_1', 'DNA_2', 'DNA_3']),
-    ('5-GRAM',          ['5GRAM_1', '5GRAM_2', '5GRAM_3']),
-    ('URL',             ['URL_1', 'URL_2', 'URL_3']),
-    ('GOV2 (10M+)',     ['GOV2_AVG_10M-']),
-    ('GOV2 (1M–10M)',   ['GOV2_AVG_1M-10M']),
-    ('GOV2 (100K–1M)',  ['GOV2_AVG_100K-1M']),
+BPK_MAX = 16.0   # filter out structures using more than 16 bits/key (matches paper)
+
+# ── Paper grid layout ─────────────────────────────────────────────────────────
+# 4 rows × 3 cols: rows = dataset families (GOV2→DNA top→bottom),
+# cols = sparse → dense within each family.
+# Each cell: (base_title, [filenames_to_average])
+PAPER_GRID = [
+    # Row 1: GOV2
+    [('GOV2 avg 100K–1M', ['GOV2_AVG_100K-1M']),
+     ('GOV2 avg 1M–10M',  ['GOV2_AVG_1M-10M']),
+     ('GOV2 avg +10M',    ['GOV2_AVG_10M-'])],
+    # Row 2: URL
+    [('URL', ['URL_3']), ('URL', ['URL_2']), ('URL', ['URL_1'])],
+    # Row 3: 5GRAM
+    [('5GRAM', ['5GRAM_3']), ('5GRAM', ['5GRAM_2']), ('5GRAM', ['5GRAM_1'])],
+    # Row 4: DNA
+    [('DNA', ['DNA_3']),  ('DNA', ['DNA_2']),  ('DNA', ['DNA_1'])],
 ]
 
 
 # ── I/O helpers ───────────────────────────────────────────────────────────────
 
-def load_csv(path: str) -> pd.DataFrame | None:
-    """Load a benchmark CSV, stripping the surrounding quotes from filenames."""
+def load_csv(path: str) -> 'pd.DataFrame | None':
     if not os.path.isfile(path):
         return None
     df = pd.read_csv(path)
-    # Strip surrounding single-quotes from the filename column
     df['filename'] = df['filename'].str.strip("'")
-    # Coerce all non-metadata columns to float (some may be read as object)
     meta = {'filename', 'n', 'u', 'ratio', 'mean_gap', 'stddev_gap',
             'mean_run', 'stddev_run'}
     for col in df.columns:
@@ -139,191 +147,164 @@ def load_csv(path: str) -> pd.DataFrame | None:
     return df
 
 
-def merge_sux(df: pd.DataFrame, sux_path: str) -> pd.DataFrame:
-    """Left-join sux-bench columns onto the main dataframe."""
+def merge_sux(df: 'pd.DataFrame', sux_path: str) -> 'pd.DataFrame':
+    """Left-join sux-bench columns; backfill GOV2_AVG_* rows by dataset size."""
     sux = load_csv(sux_path)
     if sux is None:
         return df
-    cols = ['filename'] + [c for c in sux.columns
-                           if c.startswith('sux_ef')]
-    return df.merge(sux[cols], on='filename', how='left')
+    sux_cols = [c for c in sux.columns if c.startswith('sux_ef')]
+    merged = df.merge(sux[['filename'] + sux_cols], on='filename', how='left')
 
-
-def group_avg(df: pd.DataFrame, filenames: list) -> pd.Series | None:
-    """Return the row mean across the given filenames (numeric cols only)."""
-    rows = df[df['filename'].isin(filenames)]
-    if rows.empty:
-        return None
-    numeric = rows.select_dtypes(include='number')
-    return numeric.mean()
+    if 'n' in sux.columns and not sux.empty:
+        gov2 = sux[sux['filename'].str.match(r'GOV2_\d+')]
+        ranges = {
+            'GOV2_AVG_10M-':    gov2[gov2['n'] >= 10_000_000],
+            'GOV2_AVG_1M-10M':  gov2[(gov2['n'] >= 1_000_000) & (gov2['n'] < 10_000_000)],
+            'GOV2_AVG_100K-1M': gov2[(gov2['n'] >= 100_000)   & (gov2['n'] < 1_000_000)],
+        }
+        for avg_name, subset in ranges.items():
+            if subset.empty:
+                continue
+            avg_vals = subset[sux_cols].mean()
+            mask = merged['filename'] == avg_name
+            if mask.any():
+                for col in sux_cols:
+                    merged.loc[mask, col] = avg_vals[col]
+    return merged
 
 
 # ── Plotting helpers ──────────────────────────────────────────────────────────
 
-def _get_xy(row: pd.Series, tuples: list, op: str) -> tuple[list, list]:
+def _get_time_bpk(row: 'pd.Series', tuples: list, op: str,
+                  bpk_max: float = BPK_MAX) -> 'tuple[list, list]':
     """
-    Extract (bpk, time) pairs for one structure/op from a data row.
-    op is 'select' (index 0 of tuple) or 'rank' (index 2).
-    Returns (xs, ys) lists, skipping any NaN entries.
+    Return (time_values, bpk_values) for one structure across its variants.
+    Points with bpk > bpk_max are excluded.
+    op: 'select' (tuple index 0) or 'rank' (tuple index 2).
     """
     t_idx = 0 if op == 'select' else 2
-    xs, ys = [], []
+    ts, bs = [], []
     for tup in tuples:
-        bpk_col = tup[1]
-        t_col   = tup[t_idx]
+        bpk_col, t_col = tup[1], tup[t_idx]
         if bpk_col in row.index and t_col in row.index:
             bpk = row[bpk_col]
             t   = row[t_col]
             if pd.notna(bpk) and pd.notna(t) and bpk > 0 and t > 0:
-                xs.append(bpk)
-                ys.append(t)
-    return xs, ys
+                if bpk <= bpk_max:
+                    ts.append(t)
+                    bs.append(bpk)
+    return ts, bs
 
 
-def plot_tradeoff(ax, row: pd.Series, op: str, structures: dict,
-                  sux_present: bool, draw_legend: bool = False):
+def plot_cell(ax, row: 'pd.Series', op: str,
+              sux_present: bool) -> list:
     """
-    Draw a space-time tradeoff scatter/curve on *ax* for one dataset row.
-
-    op:  'select' or 'rank'
+    Draw one subplot cell (one dataset × one operation).
+    X = time (ns), Y = space (bpk).  Linear axes, Y clipped at BPK_MAX.
+    Returns legend handles.
     """
     handles = []
 
-    # --- main structures from STRUCTURES dict ---
-    for name, tuples in structures.items():
-        if name == 'EF (sux)':
-            continue  # handled separately below
+    for name, tuples in STRUCTURES.items():
         st = STYLES[name]
-        xs, ys = _get_xy(row, tuples, op)
-        if not xs:
+        ts, bs = _get_time_bpk(row, tuples, op)
+        if not ts:
             continue
-        # Sort by bpk so the connecting line makes sense
-        pairs = sorted(zip(xs, ys))
-        xs = [p[0] for p in pairs]
-        ys = [p[1] for p in pairs]
-
-        line, = ax.plot(xs, ys,
-                        color=st['color'],
-                        marker=st['marker'],
-                        ls=st['ls'],
-                        lw=st['lw'],
-                        markersize=st['ms'],
-                        zorder=3 if name == 'la_vector' else 2)
+        # Sort by time so the connecting line is monotone in x
+        pairs = sorted(zip(ts, bs))
+        ts_s = [p[0] for p in pairs]
+        bs_s = [p[1] for p in pairs]
+        ax.plot(ts_s, bs_s,
+                color=st['color'], marker=st['marker'],
+                ls=st['ls'], lw=st['lw'], markersize=st['ms'],
+                zorder=3 if name == 'la_vector' else 2)
         handles.append(mlines.Line2D([], [],
-                                     color=st['color'],
-                                     marker=st['marker'],
-                                     ls=st['ls'],
-                                     lw=st['lw'],
-                                     markersize=st['ms'],
+                                     color=st['color'], marker=st['marker'],
+                                     ls=st['ls'], lw=st['lw'], markersize=st['ms'],
                                      label=st['label']))
 
-    # --- sux EF ---
+    # sux EF — single point, no connecting line
     if sux_present and SUX_COLS[1] in row.index:
-        bpk = row[SUX_COLS[1]]
+        bpk   = row[SUX_COLS[1]]
         t_col = SUX_COLS[0] if op == 'select' else SUX_COLS[2]
-        t = row.get(t_col, float('nan'))
-        if pd.notna(bpk) and pd.notna(t) and bpk > 0 and t > 0:
+        t     = row.get(t_col, float('nan'))
+        if pd.notna(bpk) and pd.notna(t) and bpk > 0 and t > 0 and bpk <= BPK_MAX:
             st = STYLES[SUX_STRUCT]
-            ax.plot([bpk], [t],
-                    color=st['color'],
-                    marker=st['marker'],
-                    ls='none',
-                    markersize=st['ms'],
-                    zorder=3)
+            ax.plot([t], [bpk],
+                    color=st['color'], marker=st['marker'],
+                    ls='none', markersize=st['ms'], zorder=4)
             handles.append(mlines.Line2D([], [],
-                                         color=st['color'],
-                                         marker=st['marker'],
-                                         ls='none',
-                                         markersize=st['ms'],
+                                         color=st['color'], marker=st['marker'],
+                                         ls='none', markersize=st['ms'],
                                          label=st['label']))
 
-    ax.set_xscale('log')
-    ax.set_yscale('log')
-    ax.grid(True, which='both', ls=':', lw=0.5, alpha=0.6)
-    ax.set_xlabel('bits per element', fontsize=9)
-    ax.set_ylabel('ns / query', fontsize=9)
-    ax.tick_params(labelsize=8)
-
-    if draw_legend:
-        ax.legend(handles=handles, fontsize=7, ncol=2,
-                  loc='upper left', framealpha=0.85)
-
+    ax.set_xlim(left=0)
+    ax.set_ylim(top=BPK_MAX)
+    ax.grid(True, ls=':', lw=0.4, alpha=0.6)
+    ax.tick_params(labelsize=7)
     return handles
 
 
-# ── Main figure generation ────────────────────────────────────────────────────
+# ── Paper-style figure generation ────────────────────────────────────────────
 
-def make_figure(df: pd.DataFrame, groups: list, sux_present: bool,
-                title: str, out_path: str):
+def make_paper_figure(df: 'pd.DataFrame', op: str, sux_present: bool,
+                      out_path: str) -> None:
     """
-    Create one figure: rows = dataset groups, cols = (select, rank).
+    4×3 grid figure matching Figs 7 / 8 of the paper.
+    op: 'select' or 'rank'
     """
-    n_groups = len(groups)
-    fig, axes = plt.subplots(n_groups, 2,
-                             figsize=(10, 3.2 * n_groups),
-                             squeeze=False)
-    fig.suptitle(title, fontsize=11, y=1.002)
+    present = set(df['filename'])
+    x_label = ('Select time (nanoseconds)' if op == 'select'
+                else 'Rank time (nanoseconds)')
 
-    all_handles = None
-    for row_idx, (gname, filenames) in enumerate(groups):
-        avg = group_avg(df, filenames)
-        if avg is None:
-            for col_idx in range(2):
-                axes[row_idx][col_idx].set_visible(False)
-            continue
+    fig, axes = plt.subplots(4, 3, figsize=(11, 13), squeeze=False)
+    fig.suptitle(f'Space-time performance of the {op} query', fontsize=10, y=1.002)
 
-        for col_idx, op in enumerate(('select', 'rank')):
+    legend_handles = None
+
+    for row_idx, row_specs in enumerate(PAPER_GRID):
+        for col_idx, (base_title, filenames) in enumerate(row_specs):
             ax = axes[row_idx][col_idx]
-            draw_leg = (row_idx == 0 and col_idx == 1)
-            handles = plot_tradeoff(ax, avg, op, STRUCTURES,
-                                    sux_present, draw_legend=draw_leg)
-            if draw_leg:
-                all_handles = handles
-            ax.set_title(f'{gname} — {op}', fontsize=9)
 
-    fig.tight_layout()
+            avail = [f for f in filenames if f in present]
+            if not avail:
+                ax.set_visible(False)
+                continue
+
+            rows = df[df['filename'].isin(avail)]
+            avg  = rows.select_dtypes(include='number').mean()
+
+            # Density label from ratio column
+            density = ''
+            if 'ratio' in avg.index and pd.notna(avg['ratio']):
+                density = f' ({avg["ratio"] * 100:.1f}%)'
+
+            handles = plot_cell(ax, avg, op, sux_present)
+            if legend_handles is None and handles:
+                legend_handles = handles
+
+            ax.set_title(f'{base_title}{density}', fontsize=8)
+
+            # Axis labels only on outer edges
+            if col_idx == 0:
+                ax.set_ylabel('Space (bits per integer)', fontsize=7)
+            if row_idx == 3:
+                ax.set_xlabel(x_label, fontsize=7)
+
+    fig.tight_layout(rect=[0, 0.06, 1, 1])
+
+    if legend_handles:
+        fig.legend(handles=legend_handles,
+                   loc='lower center',
+                   ncol=4,
+                   fontsize=6.5,
+                   bbox_to_anchor=(0.5, 0.0),
+                   framealpha=0.9)
+
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
     fig.savefig(out_path, bbox_inches='tight', dpi=150)
     plt.close(fig)
     print(f'  wrote {out_path}')
-
-
-def make_per_dataset_figures(df: pd.DataFrame, groups: list, sux_present: bool,
-                             out_dir: str):
-    """
-    One figure per dataset group, showing select (left) and rank (right).
-    """
-    os.makedirs(out_dir, exist_ok=True)
-    for gname, filenames in groups:
-        avg = group_avg(df, filenames)
-        if avg is None:
-            print(f'  skip {gname}: no data')
-            continue
-
-        fig, (ax_sel, ax_rnk) = plt.subplots(1, 2, figsize=(11, 4.5))
-        fig.suptitle(gname, fontsize=11)
-
-        handles_sel = plot_tradeoff(ax_sel, avg, 'select', STRUCTURES,
-                                    sux_present)
-        handles_rnk = plot_tradeoff(ax_rnk, avg, 'rank',   STRUCTURES,
-                                    sux_present)
-        ax_sel.set_title('Select', fontsize=10)
-        ax_rnk.set_title('Rank',   fontsize=10)
-
-        # Shared legend below the subplots
-        handles = handles_sel  # same structures in both
-        fig.legend(handles=handles,
-                   loc='lower center',
-                   ncol=4,
-                   fontsize=8,
-                   bbox_to_anchor=(0.5, -0.12),
-                   framealpha=0.9)
-        fig.tight_layout()
-        safe = gname.replace(' ', '_').replace('–', '-').replace('+', 'plus')
-        out_path = os.path.join(out_dir, f'{safe}.pdf')
-        fig.savefig(out_path, bbox_inches='tight', dpi=150)
-        plt.close(fig)
-        print(f'  wrote {out_path}')
 
 
 # ── Entry point ───────────────────────────────────────────────────────────────
@@ -335,8 +316,6 @@ def main():
                     help='directory containing the CSV files (default: results/)')
     ap.add_argument('--output', default='results/figures',
                     help='output directory for PDF figures (default: results/figures/)')
-    ap.add_argument('--combined', action='store_true',
-                    help='also write a single combined figure (all groups in one PDF)')
     args = ap.parse_args()
 
     csv_path = os.path.join(args.results_dir, 'comparison.csv')
@@ -356,27 +335,11 @@ def main():
 
     print(f'Loaded {len(df)} dataset rows: {list(df["filename"])}')
 
-    # Filter groups to those actually present in the data
-    present = set(df['filename'])
-    active_groups = []
-    for gname, fnames in DATASET_GROUPS:
-        if any(f in present for f in fnames):
-            active_groups.append((gname, fnames))
-        else:
-            print(f'  skip group "{gname}": none of {fnames} found in CSV')
-
-    if not active_groups:
-        print('No matching dataset groups found. Exiting.', file=sys.stderr)
-        sys.exit(1)
-
-    print(f'\nGenerating per-dataset figures → {args.output}/')
-    make_per_dataset_figures(df, active_groups, sux_present, args.output)
-
-    if args.combined:
-        out_pdf = os.path.join(args.output, 'all_datasets.pdf')
-        print(f'\nGenerating combined figure → {out_pdf}')
-        make_figure(df, active_groups, sux_present,
-                    'Space-time tradeoffs — all datasets', out_pdf)
+    os.makedirs(args.output, exist_ok=True)
+    for op in ('select', 'rank'):
+        out = os.path.join(args.output, f'{op}.pdf')
+        print(f'\nGenerating {op}.pdf …')
+        make_paper_figure(df, op, sux_present, out)
 
     print('\nDone.')
 
