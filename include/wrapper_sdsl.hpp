@@ -412,7 +412,7 @@ namespace sdsl {
 template<class ForwardIterator, class T>
 size_t even_lower_bound(ForwardIterator first, ForwardIterator last, const T &val) {
     ForwardIterator base = first;
-    size_t n = distance(first, last);
+    size_t n = std::distance(first, last);
     while (n > 2) {
         size_t half = n / 2;
         half &= ~(1UL << 0);
