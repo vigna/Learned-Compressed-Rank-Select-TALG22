@@ -19,6 +19,7 @@ include_directories(include lib/la_vector/include include/ds2i lib)
 
 add_subdirectory(lib/succinct)
 add_subdirectory(lib/la_vector)
+include_directories(${CMAKE_BINARY_DIR}/lib/la_vector/lib/sdsl-lite/external/libdivsufsort/include)
 
 if (NOT Boost_FOUND)
     message(FATAL_ERROR "Fatal error: Boost required.")
