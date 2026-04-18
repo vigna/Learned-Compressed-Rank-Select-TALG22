@@ -68,7 +68,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     writeln!(
         out,
-        "filename,n,u,ratio,sux_ef_time_select,sux_ef_bpk,sux_ef_time_rank"
+        "filename,n,u,ratio,sux_ef_time_build,sux_ef_time_select,sux_ef_bpk,sux_ef_time_rank"
     )?;
 
     for path in &files {
@@ -140,15 +140,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }};
         }
 
+        let build_start = Instant::now();
         let mut efb = EliasFanoBuilder::new(n, u);
         for &v in &data {
             efb.push(v as usize);
         }
-
         let ef = efb.build_with_seq_and_dict().try_into_unaligned()?;
+        let build_ns = build_start.elapsed().as_nanos() as f64 / n as f64;
+
         let (sel, bpk, rank) = bench_ef!(ef);
 
-        writeln!(out, ",{},{},{}", fmt_sci(sel), fmt_sci(bpk), fmt_sci(rank))?;
+        writeln!(
+            out,
+            ",{},{},{},{}",
+            fmt_sci(build_ns),
+            fmt_sci(sel),
+            fmt_sci(bpk),
+            fmt_sci(rank)
+        )?;
     }
 
     Ok(())
