@@ -102,35 +102,47 @@ int main(int argc, char *argv[]) {
         }
         // Start testing data structures
         if (array_bench) {
+            auto bs = timer::now();
             array<type> arr(data);
+            print_build_time(bs, data.size());
             test_select_bpk_rank(arr, rands1, rands2);
         }
         if (ef_bench) {
+            auto bs = timer::now();
             wrapper_sdsl<type, sdsl::sd_vector<>> ef(data);
+            print_build_time(bs, data.size());
             test_select_bpk_rank(ef, rands1, rands2);
         }
         if (rrr_bench) {
             static_for<start_rrr, end_rrr, step_rrr>([&data, &rands1, &rands2](auto b_size_exp) {
                 constexpr auto block_size = (1u << b_size_exp) - 1;
+                auto bs = timer::now();
                 wrapper_sdsl<type, sdsl::rrr_vector<block_size>> rrr(data);
+                print_build_time(bs, data.size());
                 test_select_bpk_rank(rrr, rands1, rands2);
             });
         }
         if (rle_bench) {
             static_for<start_rle, end_rle, step_rle>([&data, &rands1, &rands2](auto block_size) {
+                auto bs = timer::now();
                 wrapper_sdsl<type, sdsl::rle_vector<block_size>> rle(data);
+                print_build_time(bs, data.size());
                 test_select_bpk_rank(rle, rands1, rands2);
             });
         }
         if (la_vector_epsilon) {
             static_for<start_bpc, end_bpc, step_bpc>([&](auto bits_per_correction) {
+                auto bs = timer::now();
                 la_vector<type, bits_per_correction> la_vec(data);
+                print_build_time(bs, data.size());
                 test_select_bpk_rank(la_vec, rands1, rands2);
                 std::cout << "," << la_vec.segments_count();
             });
         }
         if (la_vector_opt) {
+            auto bs = timer::now();
             la_vector<type> la_vec_opt(data);
+            print_build_time(bs, data.size());
             test_select_bpk_rank(la_vec_opt, rands1, rands2);
             std::cout << "," << la_vec_opt.segments_count();
         }
@@ -138,13 +150,17 @@ int main(int argc, char *argv[]) {
             static_for<start_elias, end_elias, step_elias>([&data, &rands1, &rands2](auto e) {
                 constexpr auto dens = 1u << e;
                 {
+                    auto bs = timer::now();
                     wrapper_sdsl_enc_vector<sdsl::enc_vector_rank<sdsl::coder::elias_delta_rank, dens>, std::vector<type>> v(
                             data);
+                    print_build_time(bs, data.size());
                     test_select_bpk_rank(v, rands1, rands2);
                 }
                 {
+                    auto bs = timer::now();
                     wrapper_sdsl_enc_vector<sdsl::enc_vector_rank<sdsl::coder::elias_gamma_rank, dens>, std::vector<type>> v(
                             data);
+                    print_build_time(bs, data.size());
                     test_select_bpk_rank(v, rands1, rands2);
                 }
             });

@@ -3,14 +3,15 @@
 plot_results.py — Space-time tradeoff plots for rank/select dictionaries.
 
 Reads results/comparison.csv (DNA/5GRAM/URL + GOV2 averages) and optionally
-results/sux_ef_comparison.csv, then produces two PDF figures matching the layout
-of Figures 7 and 8 in the paper:
-  - results/figures/select.pdf
-  - results/figures/rank.pdf
+results/sux_ef_comparison.csv, then produces three PDF figures:
+  - results/figures/select.pdf  (space vs select time per query)
+  - results/figures/rank.pdf    (space vs rank time per query)
+  - results/figures/build.pdf   (space vs build time per key, log-scale X)
 
 Each figure is a 4×3 grid: rows = dataset families (GOV2, URL, 5GRAM, DNA),
-columns = sizes sparse → dense within each family.
-Axes are linear; X = time (ns), Y = space (bpk); Y is clipped at 16 bpk.
+columns = sizes sparse → dense within each family. Y = space (bpk), clipped
+at 16 bpk. Select/rank X-axes are linear ns/query; build X-axis is log ns/key
+(la_vector_opt dominates, so log scale is needed).
 
 Usage:
     python plot_results.py [--results-dir results/] [--output results/figures/]
@@ -43,77 +44,80 @@ STYLES = {
 }
 
 # ── Column definitions ────────────────────────────────────────────────────────
-# Each structure: list of (select_col, bpk_col, rank_col) per variant.
+# Each structure: list of (select_col, bpk_col, rank_col, build_col) per variant.
 # Variants are connected by a line (space-time tradeoff curve).
 STRUCTURES = {
     'Array': [
-        ('array_time_select', 'array_bpk', 'array_time_rank'),
+        ('array_time_select', 'array_bpk', 'array_time_rank', 'array_time_build'),
     ],
     'EF (SDSL)': [
-        ('ef_sd_time_select', 'ef_sd_bpk', 'ef_sd_time_rank'),
+        ('ef_sd_time_select', 'ef_sd_bpk', 'ef_sd_time_rank', 'ef_sd_time_build'),
     ],
     'RRR': [
-        ('rrr_15_time_select',  'rrr_15_bpk',  'rrr_15_time_rank'),
-        ('rrr_31_time_select',  'rrr_31_bpk',  'rrr_31_time_rank'),
-        ('rrr_63_time_select',  'rrr_63_bpk',  'rrr_63_time_rank'),
-        ('rrr_127_time_select', 'rrr_127_bpk', 'rrr_127_time_rank'),
+        ('rrr_15_time_select',  'rrr_15_bpk',  'rrr_15_time_rank',  'rrr_15_time_build'),
+        ('rrr_31_time_select',  'rrr_31_bpk',  'rrr_31_time_rank',  'rrr_31_time_build'),
+        ('rrr_63_time_select',  'rrr_63_bpk',  'rrr_63_time_rank',  'rrr_63_time_build'),
+        ('rrr_127_time_select', 'rrr_127_bpk', 'rrr_127_time_rank', 'rrr_127_time_build'),
     ],
     'RLE': [
-        ('rle_32_time_select',  'rle_32_bpk',  'rle_32_time_rank'),
-        ('rle_64_time_select',  'rle_64_bpk',  'rle_64_time_rank'),
-        ('rle_96_time_select',  'rle_96_bpk',  'rle_96_time_rank'),
-        ('rle_128_time_select', 'rle_128_bpk', 'rle_128_time_rank'),
-        ('rle_160_time_select', 'rle_160_bpk', 'rle_160_time_rank'),
+        ('rle_32_time_select',  'rle_32_bpk',  'rle_32_time_rank',  'rle_32_time_build'),
+        ('rle_64_time_select',  'rle_64_bpk',  'rle_64_time_rank',  'rle_64_time_build'),
+        ('rle_96_time_select',  'rle_96_bpk',  'rle_96_time_rank',  'rle_96_time_build'),
+        ('rle_128_time_select', 'rle_128_bpk', 'rle_128_time_rank', 'rle_128_time_build'),
+        ('rle_160_time_select', 'rle_160_bpk', 'rle_160_time_rank', 'rle_160_time_build'),
     ],
     'la_vector': [
-        ('la_vector_6_time_select',  'la_vector_6_bpk',  'la_vector_6_time_rank'),
-        ('la_vector_7_time_select',  'la_vector_7_bpk',  'la_vector_7_time_rank'),
-        ('la_vector_8_time_select',  'la_vector_8_bpk',  'la_vector_8_time_rank'),
-        ('la_vector_9_time_select',  'la_vector_9_bpk',  'la_vector_9_time_rank'),
-        ('la_vector_10_time_select', 'la_vector_10_bpk', 'la_vector_10_time_rank'),
-        ('la_vector_11_time_select', 'la_vector_11_bpk', 'la_vector_11_time_rank'),
-        ('la_vector_12_time_select', 'la_vector_12_bpk', 'la_vector_12_time_rank'),
-        ('la_vector_13_time_select', 'la_vector_13_bpk', 'la_vector_13_time_rank'),
-        ('la_vector_14_time_select', 'la_vector_14_bpk', 'la_vector_14_time_rank'),
+        ('la_vector_6_time_select',  'la_vector_6_bpk',  'la_vector_6_time_rank',  'la_vector_6_time_build'),
+        ('la_vector_7_time_select',  'la_vector_7_bpk',  'la_vector_7_time_rank',  'la_vector_7_time_build'),
+        ('la_vector_8_time_select',  'la_vector_8_bpk',  'la_vector_8_time_rank',  'la_vector_8_time_build'),
+        ('la_vector_9_time_select',  'la_vector_9_bpk',  'la_vector_9_time_rank',  'la_vector_9_time_build'),
+        ('la_vector_10_time_select', 'la_vector_10_bpk', 'la_vector_10_time_rank', 'la_vector_10_time_build'),
+        ('la_vector_11_time_select', 'la_vector_11_bpk', 'la_vector_11_time_rank', 'la_vector_11_time_build'),
+        ('la_vector_12_time_select', 'la_vector_12_bpk', 'la_vector_12_time_rank', 'la_vector_12_time_build'),
+        ('la_vector_13_time_select', 'la_vector_13_bpk', 'la_vector_13_time_rank', 'la_vector_13_time_build'),
+        ('la_vector_14_time_select', 'la_vector_14_bpk', 'la_vector_14_time_rank', 'la_vector_14_time_build'),
     ],
     'la_vector_opt': [
-        ('la_vector_opt_time_select', 'la_vector_opt_bpk', 'la_vector_opt_time_rank'),
+        ('la_vector_opt_time_select', 'la_vector_opt_bpk', 'la_vector_opt_time_rank', 'la_vector_opt_time_build'),
     ],
     'enc (delta)': [
-        ('elias_delta_4_time_select', 'elias_delta_4_bpk', 'elias_delta_4_time_rank'),
-        ('elias_delta_5_time_select', 'elias_delta_5_bpk', 'elias_delta_5_time_rank'),
-        ('elias_delta_6_time_select', 'elias_delta_6_bpk', 'elias_delta_6_time_rank'),
-        ('elias_delta_7_time_select', 'elias_delta_7_bpk', 'elias_delta_7_time_rank'),
+        ('elias_delta_4_time_select', 'elias_delta_4_bpk', 'elias_delta_4_time_rank', 'elias_delta_4_time_build'),
+        ('elias_delta_5_time_select', 'elias_delta_5_bpk', 'elias_delta_5_time_rank', 'elias_delta_5_time_build'),
+        ('elias_delta_6_time_select', 'elias_delta_6_bpk', 'elias_delta_6_time_rank', 'elias_delta_6_time_build'),
+        ('elias_delta_7_time_select', 'elias_delta_7_bpk', 'elias_delta_7_time_rank', 'elias_delta_7_time_build'),
     ],
     'enc (gamma)': [
-        ('elias_gamma_4_time_select', 'elias_gamma_4_bpk', 'elias_gamma_4_time_rank'),
-        ('elias_gamma_5_time_select', 'elias_gamma_5_bpk', 'elias_gamma_5_time_rank'),
-        ('elias_gamma_6_time_select', 'elias_gamma_6_bpk', 'elias_gamma_6_time_rank'),
-        ('elias_gamma_7_time_select', 'elias_gamma_7_bpk', 'elias_gamma_7_time_rank'),
+        ('elias_gamma_4_time_select', 'elias_gamma_4_bpk', 'elias_gamma_4_time_rank', 'elias_gamma_4_time_build'),
+        ('elias_gamma_5_time_select', 'elias_gamma_5_bpk', 'elias_gamma_5_time_rank', 'elias_gamma_5_time_build'),
+        ('elias_gamma_6_time_select', 'elias_gamma_6_bpk', 'elias_gamma_6_time_rank', 'elias_gamma_6_time_build'),
+        ('elias_gamma_7_time_select', 'elias_gamma_7_bpk', 'elias_gamma_7_time_rank', 'elias_gamma_7_time_build'),
     ],
     'hyb (uniform)': [
-        ('uniform_hyb0_select', 'uniform_hyb0_sequence_bpk', 'uniform_hyb0_rank'),
-        ('uniform_hyb1_select', 'uniform_hyb1_sequence_bpk', 'uniform_hyb1_rank'),
+        ('uniform_hyb0_select', 'uniform_hyb0_sequence_bpk', 'uniform_hyb0_rank', 'uniform_hyb0_time_build'),
+        ('uniform_hyb1_select', 'uniform_hyb1_sequence_bpk', 'uniform_hyb1_rank', 'uniform_hyb1_time_build'),
     ],
     'hyb (partitioned)': [
-        ('partitioned_hyb0_select', 'partitioned_hyb0_bpk', 'partitioned_hyb0_rank'),
-        ('partitioned_hyb1_select', 'partitioned_hyb1_bpk', 'partitioned_hyb1_rank'),
-        ('partitioned_hyb2_select', 'partitioned_hyb2_bpk', 'partitioned_hyb2_rank'),
+        ('partitioned_hyb0_select', 'partitioned_hyb0_bpk', 'partitioned_hyb0_rank', 'partitioned_hyb0_time_build'),
+        ('partitioned_hyb1_select', 'partitioned_hyb1_bpk', 'partitioned_hyb1_rank', 'partitioned_hyb1_time_build'),
+        ('partitioned_hyb2_select', 'partitioned_hyb2_bpk', 'partitioned_hyb2_rank', 'partitioned_hyb2_time_build'),
     ],
     's18': [
-        ('s18_1_select', 's18_1_bpk', 's18_1_rank'),
-        ('s18_2_select', 's18_2_bpk', 's18_2_rank'),
-        ('s18_3_select', 's18_3_bpk', 's18_3_rank'),
-        ('s18_4_select', 's18_4_bpk', 's18_4_rank'),
-        ('s18_5_select', 's18_5_bpk', 's18_5_rank'),
+        ('s18_1_select', 's18_1_bpk', 's18_1_rank', 's18_1_time_build'),
+        ('s18_2_select', 's18_2_bpk', 's18_2_rank', 's18_2_time_build'),
+        ('s18_3_select', 's18_3_bpk', 's18_3_rank', 's18_3_time_build'),
+        ('s18_4_select', 's18_4_bpk', 's18_4_rank', 's18_4_time_build'),
+        ('s18_5_select', 's18_5_bpk', 's18_5_rank', 's18_5_time_build'),
     ],
 }
 
 SUX_STRUCT = 'EF (sux)'
-SUX_COLS   = ('sux_ef_time_select', 'sux_ef_bpk', 'sux_ef_time_rank')
+SUX_COLS   = ('sux_ef_time_select', 'sux_ef_bpk', 'sux_ef_time_rank', 'sux_ef_time_build')
 
 BPK_MAX  = 16.0   # filter out structures using more than 16 bits/key (matches paper)
-TIME_MAX = 200.0  # clip X-axis at 400 ns
+TIME_MAX = 200.0  # clip X-axis (select/rank) at 200 ns/query
+
+# op → tuple index in STRUCTURES variants
+OP_INDEX = {'select': 0, 'rank': 2, 'build': 3}
 
 # ── Paper grid layout ─────────────────────────────────────────────────────────
 # 4 rows × 3 cols: rows = dataset families (GOV2→DNA top→bottom),
@@ -181,11 +185,13 @@ def _get_time_bpk(row: 'pd.Series', tuples: list, op: str,
     """
     Return (time_values, bpk_values) for one structure across its variants.
     Points with bpk > bpk_max are excluded.
-    op: 'select' (tuple index 0) or 'rank' (tuple index 2).
+    op: 'select', 'rank', or 'build'.
     """
-    t_idx = 0 if op == 'select' else 2
+    t_idx = OP_INDEX[op]
     ts, bs = [], []
     for tup in tuples:
+        if t_idx >= len(tup):
+            continue
         bpk_col, t_col = tup[1], tup[t_idx]
         if bpk_col in row.index and t_col in row.index:
             bpk = row[bpk_col]
@@ -201,10 +207,12 @@ def plot_cell(ax, row: 'pd.Series', op: str,
               sux_present: bool) -> list:
     """
     Draw one subplot cell (one dataset × one operation).
-    X = time (ns), Y = space (bpk).  Linear axes, Y clipped at BPK_MAX.
+    Y = space (bpk), clipped at BPK_MAX.
+    X = time per query (select/rank, linear) or per key (build, log).
     Returns legend handles.
     """
     handles = []
+    log_x = (op == 'build')
 
     for name, tuples in STRUCTURES.items():
         st = STYLES[name]
@@ -227,8 +235,9 @@ def plot_cell(ax, row: 'pd.Series', op: str,
     # sux EF — single point, no connecting line
     if sux_present and SUX_COLS[1] in row.index:
         bpk   = row[SUX_COLS[1]]
-        t_col = SUX_COLS[0] if op == 'select' else SUX_COLS[2]
-        t     = row.get(t_col, float('nan'))
+        t_idx = OP_INDEX[op]
+        t_col = SUX_COLS[t_idx] if t_idx < len(SUX_COLS) else None
+        t     = row.get(t_col, float('nan')) if t_col else float('nan')
         if pd.notna(bpk) and pd.notna(t) and bpk > 0 and t > 0 and bpk <= BPK_MAX:
             st = STYLES[SUX_STRUCT]
             ax.plot([t], [bpk],
@@ -239,9 +248,12 @@ def plot_cell(ax, row: 'pd.Series', op: str,
                                          ls='none', markersize=st['ms'],
                                          label=st['label']))
 
-    ax.set_xlim(left=0, right=TIME_MAX)
+    if log_x:
+        ax.set_xscale('log')
+    else:
+        ax.set_xlim(left=0, right=TIME_MAX)
     ax.set_ylim(top=BPK_MAX)
-    ax.grid(True, ls=':', lw=0.4, alpha=0.6)
+    ax.grid(True, ls=':', lw=0.4, alpha=0.6, which='both' if log_x else 'major')
     ax.tick_params(labelsize=7)
     return handles
 
@@ -255,8 +267,11 @@ def make_paper_figure(df: 'pd.DataFrame', op: str, sux_present: bool,
     op: 'select' or 'rank'
     """
     present = set(df['filename'])
-    x_label = ('Select time (nanoseconds)' if op == 'select'
-                else 'Rank time (nanoseconds)')
+    x_label = {
+        'select': 'Select time (nanoseconds per query)',
+        'rank':   'Rank time (nanoseconds per query)',
+        'build':  'Build time (nanoseconds per key, log scale)',
+    }[op]
 
     fig, axes = plt.subplots(4, 3, figsize=(11, 13), squeeze=False)
     fig.suptitle(f'Space-time performance of the {op} query', fontsize=10, y=1.002)
@@ -337,7 +352,7 @@ def main():
     print(f'Loaded {len(df)} dataset rows: {list(df["filename"])}')
 
     os.makedirs(args.output, exist_ok=True)
-    for op in ('select', 'rank'):
+    for op in ('select', 'rank', 'build'):
         out = os.path.join(args.output, f'{op}.pdf')
         print(f'\nGenerating {op}.pdf …')
         make_paper_figure(df, op, sux_present, out)

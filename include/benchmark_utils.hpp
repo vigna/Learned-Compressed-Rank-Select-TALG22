@@ -67,6 +67,11 @@ void do_not_optimize(T const &value) {
     asm volatile("" : : "r,m"(value) : "memory");
 }
 
+inline void print_build_time(timer::time_point start, size_t n) {
+    double elapsed = std::chrono::duration_cast<std::chrono::nanoseconds>(timer::now() - start).count();
+    std::cout << "," << elapsed / static_cast<double>(n) << std::flush;
+}
+
 template<typename D>
 void print_mean_variance(D data) {
     uint64_t sum = std::accumulate(data.begin(), data.end(), (uint64_t) 0);
@@ -156,6 +161,7 @@ void test_ds2i(const std::vector<T> &dataset, const std::vector<size_t> &rands1,
     T universe = dataset.back() + 1;
     std::tuple<uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t, uint64_t> tuple1;
     std::tuple<uint64_t, uint64_t, uint64_t, uint64_t> tuple2;
+    auto build_start = timer::now();
     if constexpr (std::is_same_v<Sequence, ds2i::uniform_partitioned_sequence<0, ds2i::indexed_sequence<0>>> ||
                   std::is_same_v<Sequence, ds2i::uniform_partitioned_sequence<1, ds2i::indexed_sequence<1>>>)
         tuple2 = Sequence::write(docs_bits, dataset.begin(), universe, dataset.size(), params);
@@ -163,6 +169,7 @@ void test_ds2i(const std::vector<T> &dataset, const std::vector<size_t> &rands1,
         tuple1 = Sequence::write(docs_bits, dataset.begin(), universe, dataset.size(), params);
     succinct::bit_vector bit_vector(&docs_bits);
     typename Sequence::enumerator enumerator(bit_vector, 0, universe, dataset.size(), params);
+    print_build_time(build_start, dataset.size());
     {
         auto t0 = std::chrono::high_resolution_clock::now();
         auto val = 0;
@@ -235,9 +242,11 @@ void test_select_bpk_rank_s18(D data, Qsize &rands1, Qvalue &rands2) {
         bv[data[i]] = 1;
     }
     constexpr auto b_size = 1u << b_size_exp;
+    auto build_start = timer::now();
     sdsl::s18::vector<b_size> s18v(bv);
     sdsl::s18::rank_support<1, b_size> s18rank(s18v);
     sdsl::s18::select_support<1, b_size> s18select(s18v);
+    print_build_time(build_start, data.size());
     {
         auto start = timer::now();
         auto cnt = 0;
@@ -284,57 +293,66 @@ void print_csv_header(bool mean_variance, bool array, bool ef, bool rrr, bool rl
     }
 
     if (array) {
-        std::cout << ",array_time_select,array_bpk"
+        std::cout << ",array_time_build"
+                     ",array_time_select,array_bpk"
                      ",array_time_rank";
     }
     if (ef) {
-        std::cout << ",ef_sd_time_select,ef_sd_bpk"
+        std::cout << ",ef_sd_time_build"
+                     ",ef_sd_time_select,ef_sd_bpk"
                      ",ef_sd_time_rank";
     }
     if (rrr) {
         static_for<start_rrr, end_rrr, step_rrr>([](auto e) {
             constexpr auto block_size = (1u << e) - 1;
             std::string block_size_str = std::to_string(block_size);
-            std::cout << ",rrr_" + block_size_str + "_time_select,rrr_" + block_size_str + "_bpk"
-                                                                                           ",rrr_" + block_size_str +
-                         "_time_rank";
+            std::cout << ",rrr_" + block_size_str + "_time_build"
+                         ",rrr_" + block_size_str + "_time_select"
+                         ",rrr_" + block_size_str + "_bpk"
+                         ",rrr_" + block_size_str + "_time_rank";
         });
     }
     if (rle) {
         static_for<start_rle, end_rle, step_rle>([](auto block_size) {
             std::string block_size_str = std::to_string(block_size);
-            std::cout << ",rle_" + block_size_str + "_time_select,rle_" + block_size_str + "_bpk"
-                                                                                           ",rle_" + block_size_str +
-                         "_time_rank";
+            std::cout << ",rle_" + block_size_str + "_time_build"
+                         ",rle_" + block_size_str + "_time_select"
+                         ",rle_" + block_size_str + "_bpk"
+                         ",rle_" + block_size_str + "_time_rank";
         });
     }
     if (la_vector_epsilon) {
         static_for<start_bpc, end_bpc, step_bpc>([](uint8_t bits_per_correction) {
             std::string bpc = std::to_string(bits_per_correction);
-            std::cout << ",la_vector_" + bpc + "_time_select,la_vector_" + bpc + "_bpk"
-                                                                                 ",la_vector_" + bpc + "_time_rank"
-                                                                                                       ",la_vector_" +
-                         bpc + "_segments";
+            std::cout << ",la_vector_" + bpc + "_time_build"
+                         ",la_vector_" + bpc + "_time_select"
+                         ",la_vector_" + bpc + "_bpk"
+                         ",la_vector_" + bpc + "_time_rank"
+                         ",la_vector_" + bpc + "_segments";
         });
     }
     if (la_vector_opt) {
-        std::cout << ",la_vector_opt_time_select,la_vector_opt_bpk"
+        std::cout << ",la_vector_opt_time_build"
+                     ",la_vector_opt_time_select,la_vector_opt_bpk"
                      ",la_vector_opt_time_rank"
                      ",la_vector_opt_segments";
     }
     if (elias_codes) {
         static_for<start_elias, end_elias, step_elias>([](auto e) {
             auto e_str = std::to_string(e);
-            std::cout << ",elias_delta_" + e_str + "_time_select,elias_delta_" + e_str + "_bpk,"
-                                                                                         "elias_delta_" + e_str +
-                         "_time_rank";
-            std::cout << ",elias_gamma_" + e_str + "_time_select,elias_gamma_" + e_str + "_bpk,"
-                                                                                         "elias_gamma_" + e_str +
-                         "_time_rank";
+            std::cout << ",elias_delta_" + e_str + "_time_build"
+                         ",elias_delta_" + e_str + "_time_select"
+                         ",elias_delta_" + e_str + "_bpk"
+                         ",elias_delta_" + e_str + "_time_rank";
+            std::cout << ",elias_gamma_" + e_str + "_time_build"
+                         ",elias_gamma_" + e_str + "_time_select"
+                         ",elias_gamma_" + e_str + "_bpk"
+                         ",elias_gamma_" + e_str + "_time_rank";
         });
     }
     if (ds2i) {
-        std::cout << ",uniform_hyb0_select"
+        std::cout << ",uniform_hyb0_time_build"
+                     ",uniform_hyb0_select"
                      ",uniform_hyb0_sequence_bpk"
                      ",uniform_hyb0_rank"
                      ",uniform_hyb0_estimate_bpk"
@@ -342,7 +360,8 @@ void print_csv_header(bool mean_variance, bool array, bool ef, bool rrr, bool rl
                      ",uniform_hyb0_rcbv"
                      ",uniform_hyb0_allones";
 
-        std::cout << ",uniform_hyb1_select"
+        std::cout << ",uniform_hyb1_time_build"
+                     ",uniform_hyb1_select"
                      ",uniform_hyb1_sequence_bpk"
                      ",uniform_hyb1_rank"
                      ",uniform_hyb1_estimate_bpk"
@@ -350,7 +369,8 @@ void print_csv_header(bool mean_variance, bool array, bool ef, bool rrr, bool rl
                      ",uniform_hyb1_rcbv"
                      ",uniform_hyb1_allones";
 
-        std::cout << ",partitioned_hyb0_select"
+        std::cout << ",partitioned_hyb0_time_build"
+                     ",partitioned_hyb0_select"
                      ",partitioned_hyb0_bpk"
                      ",partitioned_hyb0_rank"
                      ",partitioned_hyb0_estimate_bpk"
@@ -363,7 +383,8 @@ void print_csv_header(bool mean_variance, bool array, bool ef, bool rrr, bool rl
                      ",partitioned_hyb0_n_segments"
                      ",partitioned_hyb0_segments";
 
-        std::cout << ",partitioned_hyb1_select"
+        std::cout << ",partitioned_hyb1_time_build"
+                     ",partitioned_hyb1_select"
                      ",partitioned_hyb1_bpk"
                      ",partitioned_hyb1_rank"
                      ",partitioned_hyb1_estimate_bpk"
@@ -376,7 +397,8 @@ void print_csv_header(bool mean_variance, bool array, bool ef, bool rrr, bool rl
                      ",partitioned_hyb1_n_segments"
                      ",partitioned_hyb1_segments";
 
-        std::cout << ",partitioned_hyb2_select"
+        std::cout << ",partitioned_hyb2_time_build"
+                     ",partitioned_hyb2_select"
                      ",partitioned_hyb2_bpk"
                      ",partitioned_hyb2_rank"
                      ",partitions_hyb2_estimate_bpk"
@@ -407,7 +429,10 @@ void print_csv_header(bool mean_variance, bool array, bool ef, bool rrr, bool rl
     if (s18_bench) {
         static_for<start_bs18, end_bs18, step_bs18>([](auto e) {
             auto e_str = std::to_string(e);
-            std::cout << ",s18_" + e_str + "_select,s18_" + e_str + "_bpk,s18_" + e_str + "_rank";
+            std::cout << ",s18_" + e_str + "_time_build"
+                         ",s18_" + e_str + "_select"
+                         ",s18_" + e_str + "_bpk"
+                         ",s18_" + e_str + "_rank";
         });
     }
     std::cout << std::endl;
