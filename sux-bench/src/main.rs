@@ -144,16 +144,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }};
         }
 
-        let mut efb = EliasFanoBuilder::new(n, u);
-        for &v in &data {
-            efb.push(v as usize);
-        }
-        let base_ef = efb.build();
-
         macro_rules! bench_variant {
             ($log2_ones_per_inventory:literal) => {{
                 let build_start = Instant::now();
-                let ef = base_ef.clone();
+                let mut efb = EliasFanoBuilder::new(n, u);
+                for &v in &data {
+                    efb.push(v as usize);
+                }
+                let ef = efb.build();
                 let ef = unsafe {
                     ef.map_high_bits(
                         SelectZeroAdaptConst::<
