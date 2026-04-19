@@ -179,6 +179,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }};
         }
 
+        let (build, sel, bpk, rank) = bench_variant!(9);
+        write!(
+            out,
+            ",{},{},{},{}",
+            fmt_sci(build),
+            fmt_sci(sel),
+            fmt_sci(bpk),
+            fmt_sci(rank)
+        )?;
+
         let (build, sel, bpk, rank) = bench_variant!(10);
         write!(
             out,
@@ -200,6 +210,16 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )?;
 
         let (build, sel, bpk, rank) = bench_variant!(12);
+        writeln!(
+            out,
+            ",{},{},{},{}",
+            fmt_sci(build),
+            fmt_sci(sel),
+            fmt_sci(bpk),
+            fmt_sci(rank)
+        )?;
+
+        let (build, sel, bpk, rank) = bench_variant!(13);
         writeln!(
             out,
             ",{},{},{},{}",
