@@ -6,6 +6,7 @@ use mem_dbg::{MemSize, SizeFlags};
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
 use sux::dict::EliasFanoBuilder;
+use sux::rank_sel::{select_adapt, SelectAdaptConst, SelectZeroAdaptConst};
 use sux::traits::indexed_dict::{IndexedSeq, Pred};
 use sux::traits::TryIntoUnaligned;
 
@@ -68,7 +69,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     writeln!(
         out,
-        "filename,n,u,ratio,sux_ef_time_build,sux_ef_time_select,sux_ef_bpk,sux_ef_time_rank"
+        "filename,n,u,ratio\
+        ,sux_ef_10_time_build,sux_ef_10_time_select,sux_ef_10_bpk,sux_ef_10_time_rank\
+        ,sux_ef_11_time_build,sux_ef_11_time_select,sux_ef_11_bpk,sux_ef_11_time_rank\
+        ,sux_ef_12_time_build,sux_ef_12_time_select,sux_ef_12_bpk,sux_ef_12_time_rank"
     )?;
 
     for path in &files {
@@ -140,20 +144,68 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }};
         }
 
-        let build_start = Instant::now();
         let mut efb = EliasFanoBuilder::new(n, u);
         for &v in &data {
             efb.push(v as usize);
         }
-        let ef = efb.build_with_seq_and_dict().try_into_unaligned()?;
-        let build_ns = build_start.elapsed().as_nanos() as f64 / n as f64;
+        let base_ef = efb.build();
 
-        let (sel, bpk, rank) = bench_ef!(ef);
+        macro_rules! bench_variant {
+            ($log2_ones_per_inventory:literal) => {{
+                let build_start = Instant::now();
+                let ef = base_ef.clone();
+                let ef = unsafe {
+                    ef.map_high_bits(
+                        SelectZeroAdaptConst::<
+                            _,
+                            _,
+                            $log2_ones_per_inventory,
+                            { select_adapt::DEFAULT_LOG2_WORDS_PER_SUBINVENTORY },
+                        >::new,
+                    )
+                };
+                let ef = unsafe {
+                    ef.map_high_bits(
+                        SelectAdaptConst::<
+                            _,
+                            _,
+                            $log2_ones_per_inventory,
+                            { select_adapt::DEFAULT_LOG2_WORDS_PER_SUBINVENTORY },
+                        >::new,
+                    )
+                };
+                let ef = ef.try_into_unaligned()?;
+                let build_ns = build_start.elapsed().as_nanos() as f64 / n as f64;
+                let (sel, bpk, rank) = bench_ef!(ef);
+                (build_ns, sel, bpk, rank)
+            }};
+        }
 
+        let (build, sel, bpk, rank) = bench_variant!(10);
+        write!(
+            out,
+            ",{},{},{},{}",
+            fmt_sci(build),
+            fmt_sci(sel),
+            fmt_sci(bpk),
+            fmt_sci(rank)
+        )?;
+
+        let (build, sel, bpk, rank) = bench_variant!(11);
+        write!(
+            out,
+            ",{},{},{},{}",
+            fmt_sci(build),
+            fmt_sci(sel),
+            fmt_sci(bpk),
+            fmt_sci(rank)
+        )?;
+
+        let (build, sel, bpk, rank) = bench_variant!(12);
         writeln!(
             out,
             ",{},{},{},{}",
-            fmt_sci(build_ns),
+            fmt_sci(build),
             fmt_sci(sel),
             fmt_sci(bpk),
             fmt_sci(rank)
