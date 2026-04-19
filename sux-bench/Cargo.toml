@@ -7,11 +7,12 @@ edition = "2021"
 name = "sux-bench"
 path = "src/main.rs"
 
-[profile.release]
-opt-level = 3
-lto = "fat"
-
 [dependencies]
 sux = { path = "../../sux-rs" }
 mem_dbg = "0.4"
 rand = { version = "0.8", features = ["small_rng"] }
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1
