@@ -30,11 +30,11 @@ import matplotlib.lines as mlines
 # ── Style palette ─────────────────────────────────────────────────────────────
 STYLES = {
     'Array':             dict(color='#555555', marker='X',  ls='--',   lw=1.2, ms=6,  label='Array'),
-    'EF (SDSL)':         dict(color='#1f77b4', marker='o',  ls='-',    lw=1.5, ms=7,  label='EF (SDSL)'),
-    'EF (sux)':          dict(color='#17becf', marker='D',  ls='-',    lw=1.5, ms=7,  label='EF (sux)'),
+    'EF (SDSL)':         dict(color='#1f77b4', marker='o',  ls='-',    lw=1.5, ms=7,  zorder=4, label='EF (SDSL)'),
+    'EF (sux)':          dict(color='#17becf', marker='D',  ls='-',    lw=1.5, ms=4,  zorder=2, label='EF (sux)'),
     'RRR':               dict(color='#ff7f0e', marker='s',  ls='-',    lw=1.5, ms=5,  label='RRR'),
     'RLE':               dict(color='#2ca02c', marker='^',  ls='-',    lw=1.5, ms=5,  label='RLE'),
-    'la_vector':         dict(color='#d62728', marker='*',  ls='-',    lw=2.0, ms=9,  label='la_vector'),
+    'la_vector':         dict(color='#d62728', marker='*',  ls='-',    lw=2.0, ms=9,  zorder=3, label='la_vector'),
     'la_vector_opt':     dict(color='#8c0000', marker='P',  ls='none', lw=1.0, ms=9,  label='la_vector (opt)'),
     'enc (delta)':       dict(color='#9467bd', marker='v',  ls='-',    lw=1.5, ms=5,  label='enc_vector (δ)'),
     'enc (gamma)':       dict(color='#c5b0d5', marker='^',  ls='-',    lw=1.5, ms=5,  label='enc_vector (γ)'),
@@ -228,7 +228,7 @@ def plot_cell(ax, row: 'pd.Series', op: str) -> list:
         ax.plot(ts_s, bs_s,
                 color=st['color'], marker=st['marker'],
                 ls=st['ls'], lw=st['lw'], markersize=st['ms'],
-                zorder=3 if name == 'la_vector' else 2)
+                zorder=st.get('zorder', 2))
         handles.append(mlines.Line2D([], [],
                                      color=st['color'], marker=st['marker'],
                                      ls=st['ls'], lw=st['lw'], markersize=st['ms'],
@@ -259,8 +259,14 @@ def make_paper_figure(df: 'pd.DataFrame', op: str,
         'build':  'Build time (nanoseconds per key, log scale)',
     }[op]
 
+    title = {
+        'select': 'select queries',
+        'rank':   'rank queries',
+        'build':  'construction',
+    }[op]
+
     fig, axes = plt.subplots(4, 3, figsize=(11, 13), squeeze=False)
-    fig.suptitle(f'Space-time performance of the {op} query', fontsize=10, y=1.002)
+    fig.suptitle(f'Space-time performance of {title}', fontsize=10, y=1.002)
 
     legend_handles = None
 
