@@ -15,14 +15,21 @@ evaluation of the `la_vector` that includes other recently proposed rank/select 
 
 ## Build and run
 
-Clone this repo using  the flag `--recursive`. To run the experiments you need CMake 3.8+, and a compiler with support for C++17, Boost, and OpenMP.
-To compile the executables, issue the following commands:
+Clone this repo using  the flag `--recursive`. To run the experiments you need CMake 3.8+, and a compiler with support for C++17, Boost, OpenMP, and the Rust compiler.
+To compile the C++ executables, issue the following commands:
 
     ./lib/move_adapted_code.sh
     cmake . -B build -DCMAKE_BUILD_TYPE=Release
     cd build && make
 
-The latter commands generates the executable for the benchmark (`my_benchmark`). To get the already manipulated datasets you can download them [here](https://drive.google.com/file/d/1YAktyWsjnSiOXTCJYpPdM1aozyMZ3-00/view).
+The latter commands generates the executable for the benchmark (`my_benchmark`).
+
+To compile the Rust executable, issue the following commands:
+
+    cd sux-bench
+    cargo build --release
+
+To get the already manipulated datasets you can download them [here](https://drive.google.com/file/d/1YAktyWsjnSiOXTCJYpPdM1aozyMZ3-00/view).
 
 The usage of `my_benchmark` is well explained in [this file](https://github.com/aboffa/Learned-Compressed-Rank-Select-TALG22/blob/main/include/arguments_parser.hpp).
 
