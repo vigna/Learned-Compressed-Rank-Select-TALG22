@@ -70,9 +70,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     writeln!(
         out,
         "filename,n,u,ratio\
+        ,sux_ef_9_time_build,sux_ef_9_time_select,sux_ef_9_bpk,sux_ef_9_time_rank\
         ,sux_ef_10_time_build,sux_ef_10_time_select,sux_ef_10_bpk,sux_ef_10_time_rank\
         ,sux_ef_11_time_build,sux_ef_11_time_select,sux_ef_11_bpk,sux_ef_11_time_rank\
-        ,sux_ef_12_time_build,sux_ef_12_time_select,sux_ef_12_bpk,sux_ef_12_time_rank"
+        ,sux_ef_12_time_build,sux_ef_12_time_select,sux_ef_12_bpk,sux_ef_12_time_rank\
+        ,sux_ef_13_time_build,sux_ef_13_time_select,sux_ef_13_bpk,sux_ef_13_time_rank"
     )?;
 
     for path in &files {
@@ -210,7 +212,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )?;
 
         let (build, sel, bpk, rank) = bench_variant!(12);
-        writeln!(
+        write!(
             out,
             ",{},{},{},{}",
             fmt_sci(build),
