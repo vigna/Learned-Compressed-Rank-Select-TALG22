@@ -32,6 +32,7 @@ STYLES = {
     'Array':             dict(color='#555555', marker='X',  ls='--',   lw=1.2, ms=6,  label='Array'),
     'EF (SDSL)':         dict(color='#1f77b4', marker='o',  ls='-',    lw=1.5, ms=7,  zorder=4, label='EF (SDSL)'),
     'EF (sux)':          dict(color='#17becf', marker='D',  ls='-',    lw=1.5, ms=4,  zorder=2, label='EF (sux)'),
+    'PEF (sux)':         dict(color='#0e8a7a', marker='d',  ls='none', lw=1.5, ms=6,  zorder=3, label='PEF (sux)'),
     'RRR':               dict(color='#ff7f0e', marker='s',  ls='-',    lw=1.5, ms=5,  label='RRR'),
     'RLE':               dict(color='#2ca02c', marker='^',  ls='-',    lw=1.5, ms=5,  label='RLE'),
     'la_vector':         dict(color='#d62728', marker='*',  ls='-',    lw=2.0, ms=9,  zorder=3, label='la_vector'),
@@ -115,6 +116,9 @@ STRUCTURES = {
         ('sux_ef_12_time_select', 'sux_ef_12_bpk', 'sux_ef_12_time_rank', 'sux_ef_12_time_build'),
         ('sux_ef_13_time_select', 'sux_ef_13_bpk', 'sux_ef_13_time_rank', 'sux_ef_13_time_build'),
     ],
+    'PEF (sux)': [
+        ('sux_pef_time_select', 'sux_pef_bpk', 'sux_pef_time_rank', 'sux_pef_time_build'),
+    ],
 }
 
 BPK_MAX  = 16.0   # filter out structures using more than 16 bits/key (matches paper)
@@ -161,7 +165,7 @@ def merge_sux(df: 'pd.DataFrame', sux_path: str) -> 'pd.DataFrame':
     sux = load_csv(sux_path)
     if sux is None:
         return df
-    sux_cols = [c for c in sux.columns if c.startswith('sux_ef')]
+    sux_cols = [c for c in sux.columns if c.startswith('sux_')]
     merged = df.merge(sux[['filename'] + sux_cols], on='filename', how='left')
 
     if 'n' in sux.columns and not sux.empty:
