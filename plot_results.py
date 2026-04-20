@@ -31,7 +31,7 @@ import matplotlib.lines as mlines
 STYLES = {
     'Array':             dict(color='#555555', marker='X',  ls='--',   lw=1.2, ms=6,  label='Array'),
     'EF (SDSL)':         dict(color='#1f77b4', marker='o',  ls='-',    lw=1.5, ms=7,  label='EF (SDSL)'),
-    'EF (sux)':          dict(color='#17becf', marker='D',  ls='none', lw=1.5, ms=7,  label='EF (sux)'),
+    'EF (sux)':          dict(color='#17becf', marker='D',  ls='-',    lw=1.5, ms=7,  label='EF (sux)'),
     'RRR':               dict(color='#ff7f0e', marker='s',  ls='-',    lw=1.5, ms=5,  label='RRR'),
     'RLE':               dict(color='#2ca02c', marker='^',  ls='-',    lw=1.5, ms=5,  label='RLE'),
     'la_vector':         dict(color='#d62728', marker='*',  ls='-',    lw=2.0, ms=9,  label='la_vector'),
@@ -108,10 +108,14 @@ STRUCTURES = {
         ('s18_4_select', 's18_4_bpk', 's18_4_rank', 's18_4_time_build'),
         ('s18_5_select', 's18_5_bpk', 's18_5_rank', 's18_5_time_build'),
     ],
+    'EF (sux)': [
+        ('sux_ef_9_time_select',  'sux_ef_9_bpk',  'sux_ef_9_time_rank',  'sux_ef_9_time_build'),
+        ('sux_ef_10_time_select', 'sux_ef_10_bpk', 'sux_ef_10_time_rank', 'sux_ef_10_time_build'),
+        ('sux_ef_11_time_select', 'sux_ef_11_bpk', 'sux_ef_11_time_rank', 'sux_ef_11_time_build'),
+        ('sux_ef_12_time_select', 'sux_ef_12_bpk', 'sux_ef_12_time_rank', 'sux_ef_12_time_build'),
+        ('sux_ef_13_time_select', 'sux_ef_13_bpk', 'sux_ef_13_time_rank', 'sux_ef_13_time_build'),
+    ],
 }
-
-SUX_STRUCT = 'EF (sux)'
-SUX_COLS   = ('sux_ef_time_select', 'sux_ef_bpk', 'sux_ef_time_rank', 'sux_ef_time_build')
 
 BPK_MAX  = 16.0   # filter out structures using more than 16 bits/key (matches paper)
 TIME_MAX = 200.0  # clip X-axis (select/rank) at 200 ns/query
@@ -203,8 +207,7 @@ def _get_time_bpk(row: 'pd.Series', tuples: list, op: str,
     return ts, bs
 
 
-def plot_cell(ax, row: 'pd.Series', op: str,
-              sux_present: bool) -> list:
+def plot_cell(ax, row: 'pd.Series', op: str) -> list:
     """
     Draw one subplot cell (one dataset × one operation).
     Y = space (bpk), clipped at BPK_MAX.
@@ -219,7 +222,6 @@ def plot_cell(ax, row: 'pd.Series', op: str,
         ts, bs = _get_time_bpk(row, tuples, op)
         if not ts:
             continue
-        # Sort by time so the connecting line is monotone in x
         pairs = sorted(zip(ts, bs))
         ts_s = [p[0] for p in pairs]
         bs_s = [p[1] for p in pairs]
@@ -231,22 +233,6 @@ def plot_cell(ax, row: 'pd.Series', op: str,
                                      color=st['color'], marker=st['marker'],
                                      ls=st['ls'], lw=st['lw'], markersize=st['ms'],
                                      label=st['label']))
-
-    # sux EF — single point, no connecting line
-    if sux_present and SUX_COLS[1] in row.index:
-        bpk   = row[SUX_COLS[1]]
-        t_idx = OP_INDEX[op]
-        t_col = SUX_COLS[t_idx] if t_idx < len(SUX_COLS) else None
-        t     = row.get(t_col, float('nan')) if t_col else float('nan')
-        if pd.notna(bpk) and pd.notna(t) and bpk > 0 and t > 0 and bpk <= BPK_MAX:
-            st = STYLES[SUX_STRUCT]
-            ax.plot([t], [bpk],
-                    color=st['color'], marker=st['marker'],
-                    ls='none', markersize=st['ms'], zorder=4)
-            handles.append(mlines.Line2D([], [],
-                                         color=st['color'], marker=st['marker'],
-                                         ls='none', markersize=st['ms'],
-                                         label=st['label']))
 
     if log_x:
         ax.set_xscale('log')
@@ -260,7 +246,7 @@ def plot_cell(ax, row: 'pd.Series', op: str,
 
 # ── Paper-style figure generation ────────────────────────────────────────────
 
-def make_paper_figure(df: 'pd.DataFrame', op: str, sux_present: bool,
+def make_paper_figure(df: 'pd.DataFrame', op: str,
                       out_path: str) -> None:
     """
     4×3 grid figure matching Figs 7 / 8 of the paper.
@@ -295,7 +281,7 @@ def make_paper_figure(df: 'pd.DataFrame', op: str, sux_present: bool,
             if 'ratio' in avg.index and pd.notna(avg['ratio']):
                 density = f' ({avg["ratio"] * 100:.1f}%)'
 
-            handles = plot_cell(ax, avg, op, sux_present)
+            handles = plot_cell(ax, avg, op)
             if legend_handles is None and handles:
                 legend_handles = handles
 
@@ -342,8 +328,7 @@ def main():
         print(f'ERROR: {csv_path} not found. Run benchmarks first.', file=sys.stderr)
         sys.exit(1)
 
-    sux_present = os.path.isfile(sux_path)
-    if sux_present:
+    if os.path.isfile(sux_path):
         df = merge_sux(df, sux_path)
         print(f'Loaded sux-bench results from {sux_path}')
     else:
@@ -355,7 +340,7 @@ def main():
     for op in ('select', 'rank', 'build'):
         out = os.path.join(args.output, f'{op}.pdf')
         print(f'\nGenerating {op}.pdf …')
-        make_paper_figure(df, op, sux_present, out)
+        make_paper_figure(df, op, out)
 
     print('\nDone.')
 
