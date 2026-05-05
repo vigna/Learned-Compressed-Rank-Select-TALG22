@@ -8,7 +8,7 @@ name = "sux-bench"
 path = "src/main.rs"
 
 [dependencies]
-sux = { path = "../../sux-rs" }
+sux = { git = "https://github.com/vigna/sux-rs", rev = "9614130671d7542d6fac1c48734a3b88fcaf2eb6" }
 mem_dbg = "0.4"
 rand = { version = "0.8", features = ["small_rng"] }
 
