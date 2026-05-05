@@ -32,7 +32,8 @@ STYLES = {
     'Array':             dict(color='#555555', marker='X',  ls='--',   lw=1.2, ms=6,  label='Array'),
     'EF (SDSL)':         dict(color='#1f77b4', marker='o',  ls='-',    lw=1.5, ms=7,  zorder=4, label='EF (SDSL)'),
     'EF (sux)':          dict(color='#17becf', marker='D',  ls='-',    lw=1.5, ms=4,  zorder=2, label='EF (sux)'),
-    'PEF (sux)':         dict(color='#0e8a7a', marker='d',  ls='none', lw=1.5, ms=6,  zorder=3, label='PEF (sux)'),
+    'EF (sux C++ w=2)':  dict(color='#0e8a7a', marker='d',  ls='-',    lw=1.5, ms=5,  zorder=3, label='EF (sux C++ w=2)'),
+    'EF (sux C++ w=3)':  dict(color='#6a0dad', marker='d',  ls='-',    lw=1.5, ms=5,  zorder=3, label='EF (sux C++ w=3)'),
     'RRR':               dict(color='#ff7f0e', marker='s',  ls='-',    lw=1.5, ms=5,  label='RRR'),
     'RLE':               dict(color='#2ca02c', marker='^',  ls='-',    lw=1.5, ms=5,  label='RLE'),
     'la_vector':         dict(color='#d62728', marker='*',  ls='-',    lw=2.0, ms=9,  zorder=3, label='la_vector'),
@@ -116,8 +117,15 @@ STRUCTURES = {
         ('sux_ef_12_time_select', 'sux_ef_12_bpk', 'sux_ef_12_time_rank', 'sux_ef_12_time_build'),
         ('sux_ef_13_time_select', 'sux_ef_13_bpk', 'sux_ef_13_time_rank', 'sux_ef_13_time_build'),
     ],
-    'PEF (sux)': [
-        ('sux_pef_time_select', 'sux_pef_bpk', 'sux_pef_time_rank', 'sux_pef_time_build'),
+    'EF (sux C++ w=2)': [
+        ('sux_cpp_ef_9_2_time_select',  'sux_cpp_ef_9_2_bpk',  'sux_cpp_ef_9_2_time_rank',  'sux_cpp_ef_9_2_time_build'),
+        ('sux_cpp_ef_10_2_time_select', 'sux_cpp_ef_10_2_bpk', 'sux_cpp_ef_10_2_time_rank', 'sux_cpp_ef_10_2_time_build'),
+        ('sux_cpp_ef_11_2_time_select', 'sux_cpp_ef_11_2_bpk', 'sux_cpp_ef_11_2_time_rank', 'sux_cpp_ef_11_2_time_build'),
+    ],
+    'EF (sux C++ w=3)': [
+        ('sux_cpp_ef_9_3_time_select',  'sux_cpp_ef_9_3_bpk',  'sux_cpp_ef_9_3_time_rank',  'sux_cpp_ef_9_3_time_build'),
+        ('sux_cpp_ef_10_3_time_select', 'sux_cpp_ef_10_3_bpk', 'sux_cpp_ef_10_3_time_rank', 'sux_cpp_ef_10_3_time_build'),
+        ('sux_cpp_ef_11_3_time_select', 'sux_cpp_ef_11_3_bpk', 'sux_cpp_ef_11_3_time_rank', 'sux_cpp_ef_11_3_time_build'),
     ],
 }
 
@@ -332,6 +340,7 @@ def main():
 
     csv_path = os.path.join(args.results_dir, 'comparison.csv')
     sux_path = os.path.join(args.results_dir, 'sux_ef_comparison.csv')
+    sux_cpp_path = os.path.join(args.results_dir, 'sux_cpp_ef_comparison.csv')
 
     df = load_csv(csv_path)
     if df is None:
@@ -343,6 +352,12 @@ def main():
         print(f'Loaded sux-bench results from {sux_path}')
     else:
         print(f'Note: {sux_path} not found — EF (sux) will be omitted.')
+
+    if os.path.isfile(sux_cpp_path):
+        df = merge_sux(df, sux_cpp_path)
+        print(f'Loaded sux C++ results from {sux_cpp_path}')
+    else:
+        print(f'Note: {sux_cpp_path} not found — EF (sux C++) will be omitted.')
 
     print(f'Loaded {len(df)} dataset rows: {list(df["filename"])}')
 

@@ -5,7 +5,7 @@ use std::time::Instant;
 use mem_dbg::{MemSize, SizeFlags};
 use rand::rngs::SmallRng;
 use rand::{Rng, SeedableRng};
-use sux::dict::{EliasFanoBuilder, PartEliasFanoBuilder};
+use sux::dict::EliasFanoBuilder;
 use sux::rank_sel::{select_adapt, SelectAdaptConst, SelectZeroAdaptConst};
 use sux::traits::indexed_dict::{IndexedSeq, Pred};
 use sux::traits::TryIntoUnaligned;
@@ -74,8 +74,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         ,sux_ef_10_time_build,sux_ef_10_time_select,sux_ef_10_bpk,sux_ef_10_time_rank\
         ,sux_ef_11_time_build,sux_ef_11_time_select,sux_ef_11_bpk,sux_ef_11_time_rank\
         ,sux_ef_12_time_build,sux_ef_12_time_select,sux_ef_12_bpk,sux_ef_12_time_rank\
-        ,sux_ef_13_time_build,sux_ef_13_time_select,sux_ef_13_bpk,sux_ef_13_time_rank\
-        ,sux_pef_time_build,sux_pef_time_select,sux_pef_bpk,sux_pef_time_rank"
+        ,sux_ef_13_time_build,sux_ef_13_time_select,sux_ef_13_bpk,sux_ef_13_time_rank"
     )?;
 
     for path in &files {
@@ -223,28 +222,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )?;
 
         let (build, sel, bpk, rank) = bench_variant!(13);
-        write!(
-            out,
-            ",{},{},{},{}",
-            fmt_sci(build),
-            fmt_sci(sel),
-            fmt_sci(bpk),
-            fmt_sci(rank)
-        )?;
-
-        // PartEliasFano
-        let build_start = Instant::now();
-        let mut pefb = PartEliasFanoBuilder::new(n, u);
-        for &v in &data {
-            pefb.push(v as usize);
-        }
-        let pef = pefb.build();
-        let build_ns = build_start.elapsed().as_nanos() as f64 / n as f64;
-        let (sel, bpk, rank) = bench_ef!(pef);
         writeln!(
             out,
             ",{},{},{},{}",
-            fmt_sci(build_ns),
+            fmt_sci(build),
             fmt_sci(sel),
             fmt_sci(bpk),
             fmt_sci(rank)
