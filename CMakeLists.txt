@@ -18,7 +18,7 @@ find_package(Boost 1.45.0 COMPONENTS program_options)
 include_directories(include lib/la_vector/include include/ds2i lib)
 
 add_subdirectory(lib/succinct)
-add_subdirectory(lib/la_vector)
+add_subdirectory(lib/la_vector EXCLUDE_FROM_ALL)
 include_directories(${CMAKE_BINARY_DIR}/lib/la_vector/lib/sdsl-lite/external/libdivsufsort/include)
 
 if (NOT Boost_FOUND)
