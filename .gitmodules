@@ -4,3 +4,6 @@
 [submodule "lib/succinct"]
 	path = lib/succinct
 	url = https://github.com/ot/succinct.git
+[submodule "lib/sux"]
+	path = lib/sux
+	url = git@github.com:vigna/sux.git

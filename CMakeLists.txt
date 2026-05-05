@@ -33,4 +33,7 @@ target_link_libraries(my_benchmark sdsl divsufsort divsufsort64 ${Boost_LIBRARIE
 add_executable(time_to_build time_to_build.cpp)
 target_link_libraries(time_to_build sdsl divsufsort divsufsort64 ${Boost_LIBRARIES})
 
+add_executable(sux_cpp_bench sux_cpp_bench.cpp)
+target_include_directories(sux_cpp_bench PRIVATE lib/sux)
+
 add_subdirectory(tests)
