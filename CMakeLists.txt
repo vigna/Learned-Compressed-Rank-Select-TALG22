@@ -34,6 +34,6 @@ add_executable(time_to_build time_to_build.cpp)
 target_link_libraries(time_to_build sdsl divsufsort divsufsort64 ${Boost_LIBRARIES})
 
 add_executable(sux_cpp_bench sux_cpp_bench.cpp)
-target_include_directories(sux_cpp_bench PRIVATE lib/sux)
+target_include_directories(sux_cpp_bench PRIVATE ${CMAKE_SOURCE_DIR}/lib/sux)
 
 add_subdirectory(tests)
