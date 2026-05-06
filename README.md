@@ -27,16 +27,17 @@ same benchmarks, but adding to the mix the 2007 implementation from the
 of Rank/Select Queries”, and a recent Rust port of the same structure. The
 picture is quite different from the one in the paper: the “learned” approach is
 not competitive with the state of the art; it is actually slower than the 2007
-implementation on select, much slower on rank, still using in general more space
-than the information-theoretical lower bound.
+implementation on select, much slower on rank, and still using in general more
+space than the information-theoretical lower bound.
 
 You can see here the results for [select](results/figures/select.pdf),
 [rank](results/figures/rank.pdf), and [construction
 time](results/figures/build.pdf) (the latter are in logarithmic scale because of
-the very large build time of the `la_vector<opt>` variant). The learned version
+the very large build time of the `la_vector<opt>` variant; timings have been cut
+at 200 ns to make the interesting part more understandable). The learned version
 is always slower than a state-of-the-art Elias–Fano implementation, in some
-cases almost twice as slow, and often uses more space. In fact, apart from a
-few data points on the Pareto frontier, the learned version is dominated by
+cases almost twice as slow, and often uses more space. In fact, apart from a few
+data points on the Pareto frontier, the learned version is dominated by
 Elias–Fano both in time and space.
 
 The only data point sometimes on the Pareto frontier is `la_vector<opt>`, due
@@ -66,13 +67,22 @@ nanoseconds per query.
 
 Note that it is debatable to compare structures with different constant
 parameters. If you choose a fixed best structure for each type, however, the
-picture does not change.
+picture does not change. Moreover, all datasets are rather small—the structures
+are all running in some level of the cache, so there is no way from these
+benchmarks to judge the behavior of the structures when memory access becomes
+expensive.
 
 These results were obtained on a Linux server with an Intel i7-12700KF and 64
 GiB of RAM using `gcc` 15.2.1 and Rust 1.95. If you want to reproduce them, you
 can follow the instructions in the `README-orig.md` file, which contains the
 original instructions for the repository, plus instructions for compiling the
-Rust variant.
+Rust variant. You will need:
+
+- a C++ compiler supporting C++20;
+- the Rust compiler;
+- CMake, git and curl;
+- development libraries for Boost, OpenMP and GTest;
+- the Python packages `pandas` and `matplotlib`.
 
 There are a few bonuses: the `plot_results.py` script will generate the graphs
 above from the data, and the `gen_table.py` script will generate the table above
