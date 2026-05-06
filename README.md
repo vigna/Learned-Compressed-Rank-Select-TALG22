@@ -30,9 +30,9 @@ not competitive with the state of the art; it is actually slower than the 2007
 implementation on select, much slower on rank, and still using in general more
 space than the information-theoretical lower bound.
 
-You can see here the results for [select](results/figures/select.pdf),
-[rank](results/figures/rank.pdf), and [construction
-time](results/figures/build.pdf) (the latter are in logarithmic scale because of
+You can see here the results for [select](results-repo/figures/select.pdf),
+[rank](results-repo/figures/rank.pdf), and [construction
+time](results-repo/figures/build.pdf) (the latter are in logarithmic scale because of
 the very large build time of the `la_vector<opt>` variant; timings have been cut
 at 200 ns to make the interesting part more understandable). The learned version
 is always slower than a state-of-the-art Elias–Fano implementation, in some
@@ -87,9 +87,9 @@ Rust variant. You will need:
 There are a few bonuses: the `plot_results.py` script will generate the graphs
 above from the data, and the `gen_table.py` script will generate the table above
 for the top-_k_ structures. The `run_all.sh` script has been modified to pin
-execution to core 2, which is usually a performance core not shared with the OS
-scheduler, but you can change the choice (or not pin at all) by modifying the
-`PIN` variable in the script.
+execution to core 2 (using `sudo`), which is usually a performance core not
+shared with the OS scheduler, but you can change the choice (or not pin at all)
+by modifying the `PIN` variable in the script.
 
 Caveats:
 
