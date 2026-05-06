@@ -19,7 +19,7 @@ Implementation of Rank/Select Queries”. Subsequent research has always followe
 the same guidelines (up to embedding the selection structure in the bit vector),
 trying to improve space usage. The main reference implementation the authors
 used (from [SDSL-lite](https://github.com/simongog/sdsl-lite)) violates both
-assumptions, and it is indeed very slow.
+byte alignment and interleaving, and it is indeed very slow.
 
 This repository uses the machinery of the original repository to perform the
 same benchmarks, but adding to the mix the 2007 implementation from the
