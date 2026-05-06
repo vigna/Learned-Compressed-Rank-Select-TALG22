@@ -1,92 +1,88 @@
-# Learned-Compressed-Rank-Select-TALG22
-This repository contains the code to reproduce the experiments in the [TALG22 paper](https://dl.acm.org/doi/pdf/10.1145/3524060):
+# Learned-Compressed-Rank-Select-TALG22, Revisited
 
-> Antonio Boffa, Paolo Ferragina, and Giorgio Vinciguerra. 2022. A Learned Approach to Design Compressed Rank/Select Data Structures. ACM Trans. Algorithms 18, 3, Article 24 (October 2022), 28 pages. DOI:https://doi.org/10.1145/3524060
+This repository is a fork of the [original Learned-Compressed-Rank-Select-TALG22
+repository](https://github.com/aboffa/Learned-Compressed-Rank-Select-TALG22) for
+the paper “[A Learned Approach to Design Compressed Rank/Select Data
+Structures](https://dl.acm.org/doi/pdf/10.1145/3524060)”. It contains updated
+code, including the C++ (2007) and Rust (2026) implementation of the Elias–Fano
+representation of monotone sequences from my paper “[Broadword Implementation of
+Rank/Select
+Queries](https://link.springer.com/chapter/10.1007/978-3-540-68552-4_12)”
+(which, incidentally, introduced the naming “Elias–Fano”).
 
-In brief, the paper follows a recent line of research on the so-called learned data structures. It provides a “learned” scheme for implementing a rank/select dictionary over compressed space. In particular, it introduces a novel lossless compressed storage scheme for the input dictionary which turns this problem into the one of approximating a set of points in the Cartesian plane via segments. The storage of the dictionary can be defined by means of a compressed encoding of these segments and the “errors” they do in approximating the input integers. Proper algorithms and data structures are then added to this compressed storage scheme to support fast rank and select operations.
+If you're looking for advice on the choice of a rank/select structure, the
+results in the paper are misleading: the main claim of the authors is to have
+the “fastest select” (excluding, of course, arrays), but they chose a poor
+baseline for the state of the art: the fastest implementation of selection on
+bits (and thus, cascading, of an Elias–Fano representation) has been since 2007
+the interleaved, byte-aligned double-inventory described in “Broadword
+Implementation of Rank/Select Queries”. Subsequent research has always followed
+the same guidelines (up to embedding the selection structure in the bit vector).
+The main reference implementation the authors used violates both assumptions,
+and it is indeed very slow.
 
-A preliminary version of this work appeared in ([repo](https://github.com/aboffa/Learned-Rank-Select-ALENEX21)):
+This repository uses the machinery of the original repository to perform the
+same benchmarks, but adding to the mix the 2007 implementation used in
+“Broadword Implementation of Rank/Select Queries”, and a recent Rust port of the
+same structure. The picture is quite different from the one in the paper: the
+“learned” approach is not competitive with the state of the art; it is actually
+slower than the 2007 implementation on select, much slower on rank, still using
+in general much more space than the information-theoretical lower bound.
 
-> Antonio Boffa, Paolo Ferragina, and Giorgio Vinciguerra. A "learned" approach to quicken and compress rank/select dictionaries. In Proceedings of the Symposium on Algorithm Engineering and Experiments (ALENEX). SIAM, 2020. DOI:https://doi.org/10.1137/1.9781611976472.4
+You can see here the results for [select](results/figures/select.pdf),
+[rank](results/figures/rank.pdf), and [construction
+time](results/figures/build.pdf) (the latter are in logarithmic scale because of
+the very large build time of the `la_vector<opt>` variant). The learned version
+is always slower than a state-of-the-art Elias–Fano implementation, in some
+cases almost twice as slower, and almost always uses much more space. In fact,
+apart for a few data points on the Pareto frontier, the learned version is
+dominated by Elias–Fano both in time and space. The rank results are even worse.
 
-This repo includes several new experiments: study of high-order compression of the aforesaid
-approximation errors; a new improved hybrid data structure that combines our `la_vector` with existing rank/select dictionaries; more comprehensive experimental
-evaluation of the `la_vector` that includes other recently proposed rank/select dictionary implementations (for example: sdsl::s18_vector ([repo](https://github.com/mudetz/s18_vector), [article](https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=9281244)) and sdsl::rle_vector ([repo](https://github.com/vgteam/sdsl-lite)).
+The only data point sometimes on the Pareto frontier is `la_vector<opt>`, due
+to very good compression. This is, however, more of a proof-of-concept data
+structure, as it is optimized exhaustively, and its construction time is 120-150
+times slower than an Elias–Fano representation.
 
-## Build and run
+The following table shows the two fastest variants for the 2007 C++
+implementation, the Rust implementation, and the “learned” approach; the number
+in parentheses is the space usage in bits per element, and the time is in
+nanoseconds per query.
 
-Clone this repo using  the flag `--recursive`. To run the experiments you need CMake 3.8+, and a compiler with support for C++17, Boost, OpenMP, and the Rust compiler.
-To compile the C++ executables, issue the following commands:
+| Dataset          | EF (C++) #1            | EF (Rust) #1            | LA #1                         |
+| ---------------- | ---------------------- | ----------------------- | ----------------------------- |
+| DNA_1            | C++(9) 47.3 ns (6.66)  | Rust(9) 46.2 ns (6.66)  | la_vector<10> 48.5 ns (10.02) |
+| DNA_2            | C++(11) 32.5 ns (6.62) | Rust(11) 31.1 ns (6.62) | la_vector<10> 42.0 ns (10.12) |
+| DNA_3            | C++(9) 14.2 ns (10.89) | Rust(9) 13.8 ns (10.89) | la_vector<11> 21.9 ns (11.35) |
+| 5GRAM_1          | C++(11) 39.3 ns (5.91) | Rust(11) 37.6 ns (5.93) | la_vector<12> 47.6 ns (12.05) |
+| 5GRAM_2          | C++(9) 22.0 ns (10.48) | Rust(10) 21.3 ns (9.05) | la_vector<12> 37.2 ns (12.23) |
+| 5GRAM_3          | C++(9) 12.9 ns (11.31) | Rust(9) 13.3 ns (11.33) | la_vector<11> 18.8 ns (11.69) |
+| URL_1            | C++(10) 27.3 ns (7.31) | Rust(10) 26.7 ns (7.34) | la_vector<10> 43.4 ns (10.14) |
+| URL_2            | C++(9) 13.6 ns (10.67) | Rust(9) 13.2 ns (10.70) | la_vector<10> 22.4 ns (10.58) |
+| URL_3            | C++(9) 10.0 ns (12.44) | Rust(9) 9.4 ns (12.49)  | la_vector<6> 14.1 ns (7.49)   |
+| GOV2 avg 10M+    | C++(9) 7.8 ns (9.41)   | Rust(9) 7.2 ns (9.41)   | la_vector<8> 14.6 ns (9.41)   |
+| GOV2 avg 1M–10M  | C++(9) 12.5 ns (5.78)  | Rust(9) 11.8 ns (5.79)  | la_vector<8> 17.7 ns (8.11)   |
+| GOV2 avg 100K–1M | C++(9) 13.0 ns (4.90)  | Rust(9) 12.5 ns (4.90)  | la_vector<6> 22.4 ns (6.10)   |
 
-    ./lib/move_adapted_code.sh
-    cmake . -B build -DCMAKE_BUILD_TYPE=Release
-    cd build && make
+If you want to reproduce these results, you can follow the instructions in the
+`README-orig.md` file, which contains the original instructions for the repository,
+plus instructions for the Rust variant.
 
-The latter commands generates the executable for the benchmark (`my_benchmark`).
+There are a few bonuses: the `plot_results.py` script will generate the graphs
+above from the data, and the `get_table.py` script will generate the table
+above. The `run_all.sh` script has been modified to pin execution to core 2,
+which is usually a reasonable choice, but you can modify the choice (or not pin
+at all) modifying the `PIN` variable in the script.
 
-To compile the Rust executable, issue the following commands:
+Caveats:
 
-    cd sux-bench
-    cargo build --release
+- You have to download the author data from the link in `README-orig.md` and
+  place them in the `data` directory, where some symlinks will make it usable.
+  In the form they are distributed, they cannot be used with the code, as the
+  code expects data in a slightly different position for the GOV datasets, but
+  the authors have ignored my requests to obtain data corresponding exactly to
+  the code in their repository.
 
-To get the already manipulated datasets you can download them [here](https://drive.google.com/file/d/1YAktyWsjnSiOXTCJYpPdM1aozyMZ3-00/view).
-
-The usage of `my_benchmark` is well explained in [this file](https://github.com/aboffa/Learned-Compressed-Rank-Select-TALG22/blob/main/include/arguments_parser.hpp).
-
-
-The experiments can be run with the following script, which will populate a `result` directory with csv files:
-
-    bash run_all.sh
-
-The experiments require at least 32 GB of RAM and may take quite some time to finish.
-
-## Tests
-
-Since this benchmark deals with very different data structures implementations that have slightly different operations
-there is a bunch of tests that check the actual correctness of every implementation and every wrapper.
-They are in the directory `tests`. To run them:
-
-    ./build/tests/my_tests
-
-## Test environment
-
-The code was tested on the following machine:
-
-| Component | Specs                                     |
-|-----------|-------------------------------------------|
-| CPU       | Intel(R) Xeon(R) CPU E5-2407 v2 @ 2.40GHz |
-| RAM       | 41 GB                                     |
-| L1 cache  | 32 KB (data) 32 KB (instructions)         |
-| L2 cache  | 256 KB                                    |
-| L3 cache  | 1 MB                                      |
-| OS        | Ubuntu 16.04.6 LTS                        |
-| Compiler  | gcc 9.2.1                                 |
-| CMake     | version 3.13.2                            |
-
-## License
-
-This project is licensed under the terms of the GNU General Public License v3.0.
-
-If you use this code for your research, please cite:
-
-```
-@article{Boffa:2022,
-author = {Boffa, Antonio and Ferragina, Paolo and Vinciguerra, Giorgio},
-title = {A Learned Approach to Design Compressed Rank/Select Data Structures},
-year = {2022},
-issue_date = {July 2022},
-publisher = {Association for Computing Machinery},
-address = {New York, NY, USA},
-volume = {18},
-number = {3},
-issn = {1549-6325},
-url = {https://doi.org/10.1145/3524060},
-doi = {10.1145/3524060},
-abstract = {We address the problem of designing, implementing, and experimenting with compressed data structures that support rank and select queries over a dictionary of integers. We shine a new light on this classical problem by showing a connection between the input integers and the geometry of a set of points in a Cartesian plane suitably derived from them. We then build upon some results in computational geometry to introduce the first compressed rank/select dictionary based on the idea of “learning” the distribution of such points via proper linear approximations (LA). We therefore call this novel data structure the la_vector. We prove time and space complexities of the la_vector in several scenarios: in the worst case, in the case of input distributions with finite mean and variance, and taking into account the kth order entropy of some of its building blocks. We also discuss improved hybrid data structures, namely, ones that suitably orchestrate known compressed rank/select dictionaries with the la_vector. We corroborate our theoretical results with a large set of experiments over datasets originating from a variety of applications (Web search, DNA sequencing, information retrieval, and natural language processing) and show that our approach provides new interesting space-time tradeoffs with respect to many well-established compressed rank/select dictionary implementations. In particular, we show that our select is the fastest, and our rank is on the space-time Pareto frontier.},
-journal = {ACM Trans. Algorithms},
-month = {oct},
-articleno = {24},
-numpages = {28},
-keywords = {piecewise linear approximations, algorithm engineering, rank/select dictionaries, high order entropy, Compressed data structures}
-}
-```
+- The C++ code has been modified from the 2007 version to make it possible to
+  try different parameters; it also uses unaligned reads, which in 2007 were not
+  supported reliably, and moves the cold selection path to a separate function,
+  as it happens in the Rust version.

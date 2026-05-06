@@ -83,7 +83,7 @@ def top_k(row, variants, k):
 
 
 def fmt_entry(t, bpk, name):
-    return f'{name} {t:.1f} ns ({bpk:.2f})'
+    return f'{name} {t:.1f} ns ({bpk:.2f})'
 
 
 def main():
