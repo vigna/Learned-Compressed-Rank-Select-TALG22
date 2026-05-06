@@ -14,7 +14,7 @@ at 16 bpk. Select/rank X-axes are linear ns/query; build X-axis is log ns/key
 (la_vector_opt dominates, so log scale is needed).
 
 Usage:
-    python plot_results.py [--results-dir results/] [--output results/figures/]
+    python plot_results.py [--results-dir results/] [--output-dir results/figures/]
 """
 
 import argparse
@@ -334,9 +334,11 @@ def main():
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument('--results-dir', default='results',
                     help='directory containing the CSV files (default: results/)')
-    ap.add_argument('--output', default='results/figures',
-                    help='output directory for PDF figures (default: results/figures/)')
+    ap.add_argument('--output-dir', default=None,
+                    help='output directory for PDF figures (default: <results-dir>/figures/)')
     args = ap.parse_args()
+
+    output_dir = output_dir_dir if output_dir_dir else os.path.join(args.results_dir, 'figures')
 
     csv_path = os.path.join(args.results_dir, 'comparison.csv')
     sux_path = os.path.join(args.results_dir, 'sux_ef_comparison.csv')
@@ -361,9 +363,9 @@ def main():
 
     print(f'Loaded {len(df)} dataset rows: {list(df["filename"])}')
 
-    os.makedirs(args.output, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
     for op in ('select', 'rank', 'build'):
-        out = os.path.join(args.output, f'{op}.pdf')
+        out = os.path.join(output_dir, f'{op}.pdf')
         print(f'\nGenerating {op}.pdf …')
         make_paper_figure(df, op, out)
 
