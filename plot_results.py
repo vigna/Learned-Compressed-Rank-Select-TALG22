@@ -338,7 +338,7 @@ def main():
                     help='output directory for PDF figures (default: <results-dir>/figures/)')
     args = ap.parse_args()
 
-    output_dir = output_dir_dir if output_dir_dir else os.path.join(args.results_dir, 'figures')
+    output_dir = args.output_dir if args.output_dir else os.path.join(args.results_dir, 'figures')
 
     csv_path = os.path.join(args.results_dir, 'comparison.csv')
     sux_path = os.path.join(args.results_dir, 'sux_ef_comparison.csv')
