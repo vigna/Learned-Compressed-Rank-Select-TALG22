@@ -40,7 +40,7 @@ cases almost twice as slow, and often uses more space. In fact, apart from a few
 data points on the Pareto frontier, the learned version is dominated by
 Elias–Fano both in time and space.
 
-The only data point sometimes on the Pareto frontier is `la_vector<opt>`, due
+A data point sometimes on the Pareto frontier is `la_vector<opt>`, due
 to very good compression. This is, however, more of a proof-of-concept data
 structure, as it is optimized exhaustively, and its construction time is 120-150
 times slower than an Elias–Fano representation.
@@ -103,4 +103,4 @@ Caveats:
 - The `sux` C++ code has been modified from the 2007 version to make it possible
   to try different parameters; it also uses unaligned reads, which in 2007 were
   not supported reliably, and moves the “cold path” of selection to a separate
-  function, as it happens in the Rust version.
+  function, as it happens in the Rust version. The logic is unchanged.
