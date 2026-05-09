@@ -8,6 +8,7 @@ configure_file(
         include/ds2i/ds2i_config.hpp
         ESCAPE_QUOTES)
 
+# GCC 15+ miscompiles LeMonHash/SimpleRibbon at -O3 without -fno-strict-aliasing
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -march=native -pthread -fopenmp -Wno-template-body -fno-strict-aliasing")
 
 set(Boost_USE_STATIC_LIBS OFF)
